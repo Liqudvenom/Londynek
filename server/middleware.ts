@@ -65,7 +65,7 @@ export function createApiMiddleware(env: ServerEnv) {
     }
 
     if (req.method !== 'GET') return send(res, 405, { error: { kind: 'bad-request', message: 'Metoda niedozwolona.' } }, { Allow: 'GET' });
-    if (!url.pathname.startsWith('/api/transport/')) return next();
+    if (!url.pathname.startsWith('/api/transport/')) return send(res, 404, { error: { kind: 'not-found', message: 'Nieznany adres API.' } });
     const out = await transport(url);
     send(res, out.status, out.body);
   };

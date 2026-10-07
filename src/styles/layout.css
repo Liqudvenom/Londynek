@@ -1,0 +1,139 @@
+.container {
+  width: 100%;
+  max-width: var(--container);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+/* A container that is itself a padded card: keep its edges on the content column. */
+.container.boxed {
+  width: calc(100% - 2 * var(--gutter));
+  max-width: calc(var(--container) - 2 * var(--gutter));
+}
+
+.container--narrow {
+  max-width: 880px;
+}
+
+.container--text {
+  max-width: 760px;
+}
+
+.section {
+  margin-top: var(--section-gap);
+}
+
+.section--tight {
+  margin-top: var(--space-8);
+}
+
+.section--band {
+  padding-block: var(--section-gap);
+  background: var(--surface);
+  border-block: 1px solid var(--border);
+}
+
+.section--navy {
+  padding-block: var(--section-gap);
+  background: var(--navy);
+  color: #fff;
+}
+
+.main {
+  min-height: 60vh;
+  padding-bottom: var(--section-gap);
+}
+
+.stack > * + * {
+  margin-top: var(--stack, var(--space-4));
+}
+
+.cluster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cluster, var(--space-2));
+  align-items: center;
+}
+
+.grid {
+  display: grid;
+  gap: var(--grid-gap, var(--space-6));
+}
+
+.grid--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.grid--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.grid--4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.grid--auto {
+  grid-template-columns: repeat(auto-fill, minmax(var(--min, 260px), 1fr));
+}
+
+/* Three-zone marketplace layout: filters / results / context rail */
+.market-layout {
+  display: grid;
+  grid-template-columns: 272px minmax(0, 1fr) 300px;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.market-layout--two {
+  grid-template-columns: minmax(0, 1fr) 320px;
+}
+
+.market-layout__filters,
+.market-layout__rail {
+  position: sticky;
+  top: calc(var(--header-h) + 16px);
+}
+
+.market-layout__rail {
+  display: grid;
+  gap: var(--space-5);
+}
+
+@media (max-width: 1199px) {
+  .market-layout {
+    grid-template-columns: 252px minmax(0, 1fr);
+  }
+
+  .market-layout__rail {
+    position: static;
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+
+  .grid--4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 899px) {
+  .market-layout,
+  .market-layout--two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .market-layout__filters {
+    display: none;
+  }
+
+  .grid--3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 639px) {
+  .grid--2,
+  .grid--3,
+  .grid--4 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

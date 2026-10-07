@@ -1,0 +1,154 @@
+/* ---------- Selectors ---------- */
+.selector {
+  position: relative;
+  min-width: 0;
+}
+.selector__icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+.selector__select { padding-left: 38px; }
+
+/* ---------- Hero search ---------- */
+.hero-search {
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 6px;
+  padding: 6px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  color: var(--ink);
+}
+.hero-search--no-cat { grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr) auto; }
+.hero-search__query { position: relative; }
+.hero-search__icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--navy);
+  pointer-events: none;
+}
+.hero-search__input {
+  width: 100%;
+  height: 52px;
+  padding: 0 14px 0 44px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  font-size: var(--fs-body);
+}
+.hero-search__input:focus {
+  outline: none;
+  background: var(--surface);
+  border-color: var(--navy);
+  box-shadow: 0 0 0 3px rgb(23 92 211 / 0.2);
+}
+.hero-search .select {
+  height: 52px;
+  border-color: transparent;
+  background-color: var(--surface-soft);
+}
+.hero-search__submit { height: 52px; }
+
+@media (max-width: 899px) {
+  .hero-search,
+  .hero-search--no-cat { grid-template-columns: 1fr 1fr; }
+  .hero-search__query { grid-column: 1 / -1; }
+  .hero-search__submit { grid-column: 1 / -1; }
+  .hero-search--no-cat .selector { grid-column: 1 / -1; }
+}
+@media (max-width: 479px) {
+  .hero-search { grid-template-columns: 1fr; }
+}
+
+/* ---------- Global search overlay ---------- */
+.gsearch {
+  position: fixed;
+  inset: 0;
+  z-index: 850;
+  display: grid;
+  justify-items: center;
+  align-items: start;
+  padding: max(8vh, 24px) var(--space-4) var(--space-4);
+}
+.gsearch__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgb(7 25 45 / 0.6);
+  animation: fade-in var(--dur-ui) var(--ease-out);
+}
+.gsearch__panel {
+  position: relative;
+  width: min(720px, 100%);
+  max-height: 80vh;
+  overflow: auto;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  animation: slide-in-up var(--dur-ui) var(--ease-out);
+}
+.gsearch__bar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-5);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.gsearch__bar svg { flex: none; color: var(--navy); }
+.gsearch__bar input {
+  flex: 1;
+  min-width: 0;
+  height: 56px;
+  border: 0;
+  background: transparent;
+  font-size: 1.1rem;
+}
+.gsearch__bar input:focus { outline: none; }
+.gsearch__results { padding: var(--space-2); }
+.gsearch__result {
+  display: grid;
+  width: 100%;
+  gap: 2px;
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  text-align: left;
+}
+[aria-selected='true'] > .gsearch__result { background: var(--surface-soft); }
+.gsearch__type {
+  font-size: var(--fs-tiny);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--brand-red-dark);
+}
+.gsearch__title { font-weight: 600; }
+.gsearch__snippet {
+  font-size: var(--fs-meta);
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gsearch__all {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: var(--touch);
+  padding: 0 var(--space-3);
+  color: var(--line-jobs);
+  font-weight: 600;
+  font-size: var(--fs-small);
+}
+.gsearch__empty { padding: var(--space-5); display: grid; gap: var(--space-3); }
+.gsearch__hint { font-size: var(--fs-meta); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.gsearch__none { color: var(--text-secondary); }

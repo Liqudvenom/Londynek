@@ -1,0 +1,165 @@
+/* Advertising is intentionally styled apart from editorial: warm neutral, dashed frame, sans-only. */
+.ad {
+  position: relative;
+  display: grid;
+  margin-inline: auto;
+  padding: 22px 10px 10px;
+  border: 1px dashed var(--ad-border);
+  border-radius: var(--radius-sm);
+  background: var(--ad-bg);
+  font-family: var(--font-sans);
+  width: 100%;
+}
+
+.ad__label {
+  position: absolute;
+  top: 4px;
+  left: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ad-label);
+}
+
+.ad__label--inline {
+  position: static;
+  display: inline-block;
+}
+
+.ad--billboard { max-width: 990px; }
+.ad--billboard .ad__creative,
+.ad--billboard .ad__empty { min-height: 250px; }
+
+.ad--leaderboard { max-width: 748px; }
+.ad--leaderboard .ad__empty { min-height: 90px; }
+
+.ad--sidebar { max-width: 320px; }
+.ad--sidebar .ad__creative,
+.ad--sidebar .ad__empty { min-height: 250px; }
+
+.ad--mobile { max-width: 340px; }
+.ad--mobile .ad__empty { min-height: 100px; }
+
+.ad__empty {
+  display: grid;
+  place-content: center;
+  gap: 4px;
+  text-align: center;
+  color: var(--ad-label);
+  font-size: var(--fs-meta);
+  border-radius: var(--radius-xs);
+  background: repeating-linear-gradient(135deg, transparent 0 10px, rgb(0 0 0 / 0.025) 10px 20px);
+}
+
+.ad__size {
+  font-weight: 700;
+  font-size: var(--fs-small);
+}
+
+.ad__creative {
+  position: relative;
+  display: grid;
+  overflow: hidden;
+  border-radius: var(--radius-xs);
+  background: var(--navy-dark);
+  color: #fff;
+}
+
+.ad__media {
+  position: absolute;
+  inset: 0;
+}
+
+.ad__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.55;
+}
+
+.ad__copy {
+  position: relative;
+  display: grid;
+  align-content: end;
+  gap: 6px;
+  padding: var(--space-5);
+  background: linear-gradient(0deg, rgb(7 25 45 / 0.85), rgb(7 25 45 / 0.1));
+}
+
+.ad--billboard .ad__copy {
+  align-content: center;
+  max-width: 560px;
+  background: linear-gradient(90deg, rgb(7 25 45 / 0.92), rgb(7 25 45 / 0.2));
+  padding: var(--space-8);
+}
+
+.ad__advertiser {
+  font-size: var(--fs-tiny);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.ad__headline {
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+
+.ad--billboard .ad__headline { font-size: clamp(1.4rem, 1rem + 1.4vw, 2.1rem); }
+
+.ad__text {
+  font-size: var(--fs-small);
+  opacity: 0.88;
+}
+
+.ad__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  margin-top: var(--space-2);
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--brand-red);
+  font-size: var(--fs-small);
+  font-weight: 700;
+}
+
+.ad__creative:hover .ad__cta { background: var(--brand-red-dark); }
+
+.ad--inline .ad__creative { min-height: 180px; }
+
+/* Native sponsored card */
+.sponsored-card {
+  position: relative;
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px dashed var(--ad-border);
+  border-radius: var(--radius-md);
+  background: var(--ad-bg);
+  font-family: var(--font-sans);
+}
+
+.sponsored-card__body {
+  display: grid;
+  gap: 6px;
+  padding: 0 var(--space-1) var(--space-1);
+}
+
+.sponsored-card__title {
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: var(--lh-snug);
+}
+
+.sponsored-card__title a:hover { text-decoration: underline; }
+
+.sponsored-card__text {
+  font-size: var(--fs-small);
+  color: var(--text-secondary);
+}

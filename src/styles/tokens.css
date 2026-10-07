@@ -1,0 +1,107 @@
+:root {
+  /* Brand */
+  --brand-red: #e51b35;
+  --brand-red-dark: #c91229;
+  --brand-red-soft: #fdecef;
+  --navy: #102a4c;
+  --navy-dark: #07192d;
+  --navy-soft: #e8edf5;
+
+  /* Text */
+  --ink: #111827;
+  --text-secondary: #5d6678;
+  --text-muted: #667085;
+  --text-inverse: #ffffff;
+
+  /* Surfaces */
+  --background: #f8f7f2;
+  --surface: #ffffff;
+  --surface-soft: #f2f4f7;
+  --surface-warm: #f1efe6;
+  --border: #e5e7eb;
+  --border-strong: #d0d5dd;
+
+  /* Category lines (Underground-inspired) */
+  --line-jobs: #175cd3;
+  --line-housing: #e51b35;
+  --line-help: #eaaa08;
+  --line-help-ink: #8a6100;
+  --line-news: #157f3d;
+  --line-events: #c11574;
+  --line-services: #3538cd;
+  --line-thames: #5b8def;
+
+  /* Status */
+  --ok: #157f3d;
+  --warn: #b54708;
+  --danger: #c91229;
+
+  /* Ads */
+  --ad-bg: #efece2;
+  --ad-border: #cfc8b4;
+  --ad-label: #6b6450;
+
+  /* Typography */
+  --font-serif: 'Newsreader Variable', 'Source Serif 4', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --fs-display: clamp(2rem, 1.2rem + 3.6vw, 4.5rem);
+  --fs-h1: clamp(1.9rem, 1.4rem + 2vw, 3rem);
+  --fs-section: clamp(1.6rem, 1.35rem + 0.8vw, 2.125rem);
+  --fs-h3: clamp(1.15rem, 1.05rem + 0.35vw, 1.375rem);
+  --fs-lead: clamp(1.05rem, 1rem + 0.25vw, 1.2rem);
+  --fs-body: 1rem;
+  --fs-small: 0.875rem;
+  --fs-meta: 0.8125rem;
+  --fs-tiny: 0.72rem;
+
+  --lh-tight: 1.12;
+  --lh-snug: 1.3;
+  --lh-body: 1.6;
+
+  /* Spacing (4px base) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+  --space-10: 64px;
+  --space-11: 80px;
+  --space-12: 96px;
+
+  --section-gap: clamp(48px, 4vw + 24px, 88px);
+
+  /* Shape */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  --shadow-sm: 0 1px 2px rgb(16 24 40 / 0.06);
+  --shadow-md: 0 4px 14px rgb(16 24 40 / 0.08);
+  --shadow-lg: 0 18px 48px rgb(7 25 45 / 0.16);
+
+  /* Motion */
+  --dur-micro: 150ms;
+  --dur-ui: 200ms;
+  --dur-section: 400ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Layout */
+  --container: 1400px;
+  --gutter: clamp(16px, 3vw, 32px);
+  --header-h: 72px;
+  --bottom-nav-h: 64px;
+  --touch: 44px;
+}
+
+@media (max-width: 899px) {
+  :root {
+    --header-h: 60px;
+  }
+}

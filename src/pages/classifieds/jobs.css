@@ -1,0 +1,90 @@
+/* ---------- Hero ---------- */
+.jobs-hero::after { background: linear-gradient(100deg, rgb(10 37 92 / 0.92) 0%, rgb(23 92 211 / 0.72) 55%, rgb(23 92 211 / 0.2) 100%); }
+.jobs-hero .page-hero__content { display: grid; gap: var(--space-3); max-width: 920px; }
+.jobs-hero__modes { width: fit-content; background: rgb(255 255 255 / 0.16); }
+.jobs-hero__modes a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: var(--fs-small);
+  color: #fff;
+}
+.jobs-hero__modes a[aria-current='page'] { background: #fff; color: var(--line-jobs); }
+.jobs-hero__modes a:not([aria-current]):hover { background: rgb(255 255 255 / 0.14); }
+
+/* ---------- Industries ---------- */
+.industry-strip {
+  display: flex;
+  gap: var(--space-2);
+  padding-block: var(--space-5) var(--space-2);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.industry-strip::-webkit-scrollbar { display: none; }
+.industry-strip__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: none;
+  min-height: var(--touch);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  transition: border-color var(--dur-micro) var(--ease-out), background var(--dur-micro) var(--ease-out);
+}
+.industry-strip__item svg { color: var(--line-jobs); }
+.industry-strip__item span { font-size: var(--fs-tiny); font-weight: 700; color: var(--text-muted); }
+.industry-strip__item:hover { border-color: var(--line-jobs); }
+.industry-strip__item[aria-pressed='true'] { background: var(--line-jobs); border-color: var(--line-jobs); color: #fff; }
+.industry-strip__item[aria-pressed='true'] svg,
+.industry-strip__item[aria-pressed='true'] span { color: #fff; }
+
+/* ---------- Employer strip ---------- */
+.employer-strip { display: flex; align-items: center; gap: var(--space-4); padding-block: var(--space-3); }
+.employer-strip__label { flex: none; font-size: var(--fs-tiny); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+.employer-strip ul { display: flex; gap: var(--space-2); overflow-x: auto; scrollbar-width: none; }
+.employer-strip ul::-webkit-scrollbar { display: none; }
+.employer-strip button {
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--navy);
+}
+.employer-strip button:hover { background: #e3ecfb; color: var(--line-jobs); }
+
+/* ---------- Results ---------- */
+.jobs-list { display: grid; gap: var(--space-3); }
+.candidates-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--space-4); }
+
+/* ---------- Rail ---------- */
+.jobs-cta { background: var(--line-jobs); border-color: var(--line-jobs); color: #fff; }
+.jobs-cta h2 { font-size: var(--fs-h3); color: #fff; }
+.jobs-cta p { color: rgb(255 255 255 / 0.88) !important; }
+.jobs-cta .btn { width: 100%; }
+
+.pay-insight { display: grid; gap: var(--space-3); }
+.pay-insight li { display: grid; grid-template-columns: 1fr auto; gap: 4px var(--space-2); font-size: var(--fs-meta); }
+.pay-insight strong { color: var(--ink); }
+.pay-insight__bar {
+  grid-column: 1 / -1;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, var(--line-jobs) var(--w), var(--surface-soft) var(--w));
+}
+
+@media (max-width: 719px) {
+  .employer-strip { flex-direction: column; align-items: flex-start; gap: var(--space-2); }
+  .employer-strip ul { max-width: 100%; }
+}

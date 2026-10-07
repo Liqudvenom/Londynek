@@ -1,0 +1,24 @@
+.pform { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); align-items: start; }
+.pform__full,
+.pform__actions,
+.pform > [role='status'],
+.pform > fieldset { grid-column: 1 / -1; }
+.pform__textarea { min-height: 140px; padding-block: var(--space-3); resize: vertical; }
+.pform__req { color: var(--brand-red); }
+.pform .input:user-invalid,
+.pform .select:user-invalid { border-color: var(--danger); box-shadow: 0 0 0 1px var(--danger); }
+.pform__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4); }
+.pform__privacy { font-size: var(--fs-meta); color: var(--text-muted); }
+.pform__privacy a { text-decoration: underline; }
+.pform__success { display: flex; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-md); background: #ecf8f0; border: 1px solid #a8dbbb; color: var(--ok); }
+.pform__success strong { color: var(--ink); }
+.pform__success p { display: flex; gap: 6px; align-items: flex-start; margin-top: 4px; font-size: var(--fs-meta); color: var(--text-secondary); }
+.pform__success p svg { margin-top: 3px; flex: none; }
+.pform__error { display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-4); border-radius: var(--radius-md); background: #fdf0ef; border: 1px solid #f0b7b2; color: #9b1c13; font-size: var(--fs-meta); }
+.pform__error svg { flex: none; }
+.pform__hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+.field__hint { font-size: var(--fs-tiny); color: var(--text-muted); }
+
+@media (max-width: 639px) {
+  .pform { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,121 @@
+﻿/* ---------- Hero ---------- */
+.estate-hero .page-hero__content { display: grid; gap: var(--space-3); max-width: 920px; }
+.estate-hero__modes { width: fit-content; background: rgb(255 255 255 / 0.16); backdrop-filter: blur(6px); }
+.estate-hero__modes button { color: #fff; min-height: 40px; padding-inline: var(--space-4); }
+.estate-hero__modes button[aria-pressed='true'] { background: #fff; color: var(--navy); }
+
+/* ---------- Type selector ---------- */
+.estate-types {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: var(--space-2);
+  margin-top: calc(var(--space-6) * -1);
+  padding: var(--space-2);
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.estate-types::-webkit-scrollbar { display: none; }
+.estate-types__item {
+  display: inline-flex;
+  flex: 1 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 52px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: var(--fs-small);
+  color: var(--ink);
+  white-space: nowrap;
+  transition: background var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out);
+}
+.estate-types__item svg { color: var(--brand-red); }
+.estate-types__item:hover { background: var(--surface-soft); }
+.estate-types__item[aria-pressed='true'] { background: var(--brand-red-soft); color: var(--brand-red-dark); box-shadow: inset 0 -3px 0 var(--brand-red); }
+.estate-types__add { color: var(--brand-red-dark); border: 1px dashed var(--brand-red); }
+
+/* ---------- Layout: filters | results | map + district ---------- */
+.estate-layout {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr) 360px;
+  gap: var(--space-6);
+  align-items: start;
+}
+.estate-layout__filters,
+.estate-layout__aside { position: sticky; top: calc(var(--header-h) + var(--space-4)); }
+.estate-layout__aside { display: grid; gap: var(--space-4); }
+.estate-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--space-5); }
+
+.estate-map { padding: var(--space-4); background: var(--navy-soft); border-color: transparent; }
+.estate-map__head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: var(--space-2); }
+.estate-map__head h2 { font-family: var(--font-sans); font-size: var(--fs-body); font-weight: 700; letter-spacing: 0; }
+.estate-map .lmap { aspect-ratio: 1.15; }
+.estate-map .lmap__bubble { min-height: 24px; padding: 2px 7px; font-size: 11px; }
+
+.district-panel { padding: 0; overflow: hidden; }
+.district-panel__body { display: grid; gap: var(--space-3); padding: var(--space-4) var(--space-5) var(--space-5); }
+.district-panel__title { display: flex; align-items: center; gap: var(--space-2); font-size: var(--fs-h3); }
+.district-panel__stats { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.district-panel__stats div { padding: 10px 12px; background: var(--surface); }
+.district-panel__stats dt { font-size: var(--fs-tiny); color: var(--text-muted); }
+.district-panel__stats dd { font-weight: 700; font-size: var(--fs-body); color: var(--ink); }
+.district-panel__trend { display: inline-flex; align-items: center; gap: 4px; color: var(--ok) !important; }
+.district-panel__facts { display: grid; gap: var(--space-2); font-size: var(--fs-meta); color: var(--text-secondary); }
+.district-panel__facts li { display: grid; grid-template-columns: 18px 1fr; gap: var(--space-2); }
+.district-panel__facts svg { margin-top: 2px; color: var(--brand-red); }
+.district-panel__facts strong { color: var(--ink); }
+
+@media (max-width: 1379px) {
+  .estate-layout { grid-template-columns: 240px minmax(0, 1fr) 320px; gap: var(--space-5); }
+}
+@media (max-width: 1179px) {
+  .estate-layout { grid-template-columns: minmax(0, 1fr) 320px; }
+  .estate-layout__filters { display: none; }
+}
+@media (max-width: 899px) {
+  .estate-layout { grid-template-columns: 1fr; }
+  .estate-layout__aside { position: static; grid-row: 1; grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 639px) {
+  .estate-layout__aside { grid-template-columns: 1fr; }
+  .estate-types { margin-top: var(--space-4); }
+}
+
+/* ---------- Agency ad + guides ---------- */
+.estate-extras { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: var(--space-6); }
+.agency-ad {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr);
+  overflow: hidden;
+  background: var(--navy);
+  color: #fff;
+  border-radius: var(--radius-lg);
+}
+.agency-ad .ad__label { position: absolute; top: 12px; left: 12px; z-index: 1; }
+.agency-ad__media { min-height: 240px; }
+.agency-ad__body { display: grid; align-content: center; gap: var(--space-3); padding: var(--space-6); }
+.agency-ad__name { font-size: var(--fs-tiny); letter-spacing: 0.12em; text-transform: uppercase; color: rgb(255 255 255 / 0.7); }
+.agency-ad__claim { font-size: var(--fs-h3); color: #fff; }
+.agency-ad__body ul { display: grid; gap: 6px; font-size: var(--fs-small); }
+.agency-ad__body li { display: flex; gap: var(--space-2); align-items: center; }
+.agency-ad__body li svg { color: #7ad3a0; flex: none; }
+.agency-ad__body .btn { width: fit-content; }
+
+.estate-guides ul { display: grid; border-top: 1px solid var(--border); }
+.estate-guides li { border-bottom: 1px solid var(--border); }
+.estate-guides a { display: grid; gap: 2px; padding: var(--space-3) 0; }
+.estate-guides a strong { font-family: var(--font-serif); font-size: 1.1rem; font-weight: 600; line-height: 1.3; }
+.estate-guides a span { font-size: var(--fs-tiny); color: var(--text-muted); }
+.estate-guides a:hover strong { color: var(--brand-red-dark); }
+
+@media (max-width: 899px) {
+  .estate-extras { grid-template-columns: 1fr; }
+  .agency-ad { grid-template-columns: 1fr; }
+  .agency-ad__media { min-height: 0; aspect-ratio: 16 / 9; }
+}

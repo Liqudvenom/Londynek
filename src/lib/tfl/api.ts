@@ -1,6 +1,12 @@
-// Browser client for our internal transport API (never calls TfL directly – credentials stay server-side).
+// Browser client for transport data.
+// Dev/preview talks to the local /api/transport proxy (keys stay on the server).
+// Static production (GitHub Pages) runs the same adapters in the browser and
+// calls the public TfL API directly — no Node, no secrets in the bundle.
+import { createTflClient } from './client';
+import { createTransportApi } from './transport';
 import type {
   ApiEnvelope,
+  ApiErrorBody,
   ApiErrorKind,
   ApiMeta,
   Journey,
@@ -29,7 +35,30 @@ export class TransportApiError extends Error {
 let clockSkew = 0;
 export const serverNow = () => Date.now() + clockSkew;
 
+const noteSkew = (env: ApiEnvelope<unknown>) => {
+  const st = Date.parse(env.meta.serverTime);
+  if (Number.isFinite(st)) clockSkew = st - Date.now();
+};
+
+const isErrorBody = (body: ApiEnvelope<unknown> | ApiErrorBody): body is ApiErrorBody => 'error' in body;
+
+let directHandle: ReturnType<typeof createTransportApi> | null = null;
+const directTransport = () => {
+  directHandle ??= createTransportApi(createTflClient());
+  return directHandle;
+};
+
+async function getDirect<T>(path: string, signal?: AbortSignal): Promise<ApiEnvelope<T>> {
+  if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+  const { status, body } = await directTransport()(new URL(path, 'https://londynek.local'));
+  if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+  if (isErrorBody(body)) throw new TransportApiError(body.error.kind, body.error.message, status);
+  noteSkew(body);
+  return body as ApiEnvelope<T>;
+}
+
 async function get<T>(path: string, signal?: AbortSignal): Promise<ApiEnvelope<T>> {
+  if (import.meta.env.PROD) return getDirect<T>(path, signal);
   let res: Response;
   try {
     res = await fetch(path, { signal, headers: { Accept: 'application/json' } });
@@ -48,8 +77,7 @@ async function get<T>(path: string, signal?: AbortSignal): Promise<ApiEnvelope<T
     throw new TransportApiError(e?.kind ?? 'unavailable', e?.message ?? `Błąd ${res.status}`, res.status);
   }
   const env = body as ApiEnvelope<T>;
-  const st = Date.parse(env.meta.serverTime);
-  if (Number.isFinite(st)) clockSkew = st - Date.now();
+  noteSkew(env);
   return env;
 }
 

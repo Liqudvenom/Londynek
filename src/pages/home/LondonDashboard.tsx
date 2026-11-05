@@ -1,95 +1,95 @@
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Bus, Zap } from 'lucide-react';
-import { Icon } from '@/components/ui/Icon';
-import { LondonMap } from '@/components/london/LondonMap';
-import { TransportStatus } from '@/components/london/TransportStatus';
-import { DISTRICTS, REGIONS, regionName } from '@/data/districts';
-import { CLASSIFIEDS } from '@/data/classifieds';
-import { EVENTS } from '@/data/events';
-import type { RegionId } from '@/types';
+import { ShieldCheck } from 'lucide-react';
+import { LazyListingMap, MapItemCard } from '@/components/location/MapParts';
+import { MAP_KIND_COLOUR, MAP_KIND_LABEL, allMapItems, type MapKind } from '@/lib/location/mapItems';
+import { filterMapItems, NEAR_M } from '@/lib/location/mapQuery';
+import type { LocationResult } from '@/lib/location/types';
+import { MapFinder } from './MapFinder';
 
-const QUICK_ACCESS = [
-  { label: 'Nieruchomości', icon: 'Home', to: '/ogloszenia/nieruchomosci' },
-  { label: 'Praca', icon: 'Briefcase', to: '/ogloszenia/praca' },
-  { label: 'Metro na żywo', icon: 'TrainFront', to: '/transport/tube' },
-  { label: 'Zdrowie', icon: 'HeartPulse', to: '/poradnik?obszar=nhs' },
-  { label: 'Edukacja', icon: 'GraduationCap', to: '/poradnik?obszar=szkoly' },
-  { label: 'Urzędy', icon: 'Landmark', to: '/poradnik?obszar=dokumenty' },
-  { label: 'Prawo', icon: 'Scale', to: '/poradnik?obszar=prawo' },
-  { label: 'Biznes', icon: 'Briefcase', to: '/ogloszenia/uslugi' },
-];
+const KINDS: MapKind[] = ['jobs', 'housing', 'services', 'business', 'events', 'market'];
 
-interface Props {
-  region: RegionId;
-  onRegionChange: (r: RegionId) => void;
-}
+export function LondonDashboard() {
+  const all = allMapItems();
+  const [query, setQuery] = useState('');
+  const [origin, setOrigin] = useState<LocationResult | null>(null);
+  const [kinds, setKinds] = useState<ReadonlySet<MapKind>>(new Set());
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-export function LondonDashboard({ region, onRegionChange }: Props) {
-  const markers = DISTRICTS.filter((d) => d.region === region).map((d) => ({ id: d.id, x: d.map.x, y: d.map.y, label: d.name, tone: 'red' as const }));
-  const localListings = CLASSIFIEDS.filter((l) => l.region === region).slice(0, 2);
-  const localEvent = EVENTS.find((e) => e.region === region);
+  const matched = useMemo(() => filterMapItems(all, query, origin), [all, query, origin]);
+  const items = useMemo(() => (kinds.size ? matched.filter((i) => kinds.has(i.kind)) : matched), [matched, kinds]);
+  const counts = useMemo(() => {
+    const c = Object.fromEntries(KINDS.map((k) => [k, 0])) as Record<MapKind, number>;
+    for (const i of matched) c[i.kind]++;
+    return c;
+  }, [matched]);
+  const selected = selectedId ? items.find((i) => i.id === selectedId) ?? null : null;
+
+  const toggle = (kind: MapKind) =>
+    setKinds((prev) => {
+      const next = new Set(prev);
+      if (next.has(kind)) next.delete(kind);
+      else next.add(kind);
+      return next;
+    });
 
   return (
-    <section className="container section dashboard" aria-label="Twój londyński pulpit">
-      <div className="dashboard__col panel">
-        <h2 className="panel__title">
-          <Zap size={18} aria-hidden="true" /> Szybki dostęp
-        </h2>
-        <ul className="quick-grid">
-          {QUICK_ACCESS.map((q) => (
-            <li key={q.label}>
-              <Link to={q.to} className="quick-grid__item">
-                <span className="quick-grid__icon">
-                  <Icon name={q.icon} size={22} />
-                </span>
-                {q.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </div>
+    <section className="container section dashboard" aria-label="Interaktywna mapa Londynu">
+      <div className="dashboard-map">
+        <LazyListingMap
+          items={items}
+          center={{ lat: 51.5072, lng: -0.1276, zoom: 10.2 }}
+          fitOnChange={!origin}
+          cluster
+          basemap="osm"
+          clusterTone="navy"
+          maxZoom={14.5}
+          searchPoint={origin ? { lat: origin.lat, lng: origin.lng, label: origin.label } : null}
+          radiusM={origin ? NEAR_M : null}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+          preview={selected ? <MapItemCard item={selected} onClose={() => setSelectedId(null)} /> : null}
+          ariaLabel="Mapa Londynu z ofertami, firmami i wydarzeniami"
+          className="dashboard-map__canvas"
+        />
 
-      <div className="dashboard__col panel dashboard__map">
-        <h2 className="panel__title">Wybierz region Londynu</h2>
-        <div className="dashboard__map-grid">
-          <LondonMap label="Mapa regionów Londynu" selectedRegion={region} onSelectRegion={onRegionChange} markers={markers} showRegionLabels />
-          <div className="dashboard__regions">
-            <div className="cluster" role="group" aria-label="Regiony">
-              {REGIONS.map((r) => (
-                <button key={r.id} type="button" className="chip" aria-pressed={region === r.id} onClick={() => onRegionChange(r.id)}>
-                  {r.name.replace(' London', '')}
-                </button>
-              ))}
-            </div>
-            <div className="dashboard__local" aria-live="polite">
-              <p className="dashboard__local-title">Teraz w: {regionName(region)}</p>
-              <ul>
-                {localListings.map((l) => (
-                  <li key={l.id}>
-                    <Link to={`/ogloszenie/${l.id}`}>{l.title}</Link>
-                    <span>{l.priceLabel}</span>
-                  </li>
-                ))}
-                {localEvent && (
-                  <li>
-                    <Link to={`/wydarzenia/${localEvent.id}`}>{localEvent.title}</Link>
-                    <span>Wydarzenie</span>
-                  </li>
-                )}
-              </ul>
-            </div>
+        <div className="dashboard-map__legend">
+          <div className="dashboard-map__legend-head">
+            <p>Na mapie · {items.length}</p>
+            {kinds.size > 0 && (
+              <button type="button" className="dashboard-map__all" onClick={() => setKinds(new Set())}>
+                Wszystkie
+              </button>
+            )}
           </div>
+          <div className="dashboard-map__filters" role="group" aria-label="Rodzaj ofert">
+            {KINDS.map((kind) => (
+              <button
+                key={kind}
+                type="button"
+                className={`dashboard-map__filter ${kinds.has(kind) ? 'is-on' : ''}`}
+                style={{ ['--swatch' as string]: MAP_KIND_COLOUR[kind] }}
+                aria-pressed={kinds.has(kind)}
+                onClick={() => toggle(kind)}
+              >
+                <span className="dashboard-map__dot" style={{ background: MAP_KIND_COLOUR[kind] }} aria-hidden="true" />
+                {MAP_KIND_LABEL[kind]}
+                <b>{counts[kind]}</b>
+              </button>
+            ))}
+          </div>
+          <p>
+            <span className="dashboard-map__dot dashboard-map__dot--area" aria-hidden="true" />
+            <span>
+              Pusta pinezka z kręgiem to okolica kodu pocztowego. Adres zamieszkania osoby prywatnej widzi tylko autor ogłoszenia.
+            </span>
+          </p>
+          <Link to="/zaloguj" className="dashboard-map__login">
+            <ShieldCheck size={13} aria-hidden="true" /> Zaloguj się jako zleceniodawca lub zleceniobiorca
+          </Link>
         </div>
-        <a href="#lokalnie" className="text-link">
-          Zobacz, co dzieje się w okolicy <ArrowRight size={16} aria-hidden="true" />
-        </a>
-      </div>
 
-      <div className="dashboard__col panel">
-        <h2 className="panel__title">
-          <Bus size={18} aria-hidden="true" /> Komunikacja i utrudnienia
-        </h2>
-        <TransportStatus />
+        <MapFinder query={query} onQuery={setQuery} origin={origin} onOrigin={setOrigin} items={items} onPickItem={setSelectedId} />
       </div>
     </section>
   );

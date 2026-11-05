@@ -11,7 +11,7 @@ export function LocalLondon({ region }: { region: RegionId }) {
         <SectionHeader
           id="local-title"
           title="Co dzieje się w Twojej części Londynu?"
-          description={`Wybrany region: ${regionName(region)}. Dzielnice z tego regionu są wyróżnione – zmień region na mapie powyżej.`}
+          description={`Dzielnice Londynu. Oferty z mapy powyżej otwierasz klikając pinezkę. Wybrany przegląd: ${regionName(region)}.`}
           accent="jobs"
           action={{ label: 'Przeglądaj dzielnice', to: '/ogloszenia/nieruchomosci' }}
         />

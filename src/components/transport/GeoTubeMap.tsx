@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import maplibregl, { type GeoJSONSource, type Map as MlMap, type StyleSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { onDark, drawCapsule, trainFill, TrainTooltip, type HoverTrain, type TubeMapProps } from './mapShared';
-import { TrainAnimator, type AnimatedTrain } from './trainAnimator';
+import { type TubeMapProps } from './mapShared';
 
-const STYLE_URL = import.meta.env.VITE_MAP_STYLE_URL || 'https://tiles.openfreemap.org/styles/dark';
+const STYLE_URL = import.meta.env.VITE_MAP_STYLE_URL || 'https://tiles.openfreemap.org/styles/positron';
+const RASTER = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 const GLYPHS = 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf';
 const LONDON: [number, number] = [-0.1276, 51.5072];
 const BOUNDS: [[number, number], [number, number]] = [
@@ -15,46 +15,16 @@ const BOUNDS: [[number, number], [number, number]] = [
 const FALLBACK_STYLE: StyleSpecification = {
   version: 8,
   glyphs: GLYPHS,
-  sources: {},
-  layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#070A10' } }],
+  sources: {
+    raster: { type: 'raster', tiles: [RASTER], tileSize: 256, attribution: '© OpenStreetMap contributors' },
+  },
+  layers: [
+    { id: 'background', type: 'background', paint: { 'background-color': '#e8eef4' } },
+    { id: 'raster', type: 'raster', source: 'raster' },
+  ],
 };
 
 const STATION_LAYERS = ['tube-station', 'tube-interchange-outer'];
-
-/** Recolours the vector basemap: deep-blue Thames, dark-green parks, quiet roads. */
-function recolour(map: MlMap) {
-  for (const layer of map.getStyle().layers ?? []) {
-    const id = layer.id;
-    const set = (prop: string, value: unknown) => {
-      try {
-        map.setPaintProperty(id, prop, value);
-      } catch {
-        /* property not applicable to this layer */
-      }
-    };
-    if (layer.type === 'background') set('background-color', '#070A10');
-    else if (id === 'water') set('fill-color', '#0B2238');
-    else if (id === 'waterway') set('line-color', '#0B2238');
-    else if (id === 'landuse_park' || id === 'landcover_wood') {
-      set('fill-color', '#0D2117');
-      set('fill-opacity', 0.95);
-    } else if (id === 'landuse_residential') set('fill-color', '#0A0E15');
-    else if (id === 'building') {
-      set('fill-color', '#0E121A');
-      set('fill-outline-color', '#0E121A');
-    } else if (layer.type === 'line' && /^(highway|road|aeroway|tunnel|bridge)/.test(id)) set('line-color', '#161B25');
-    else if (layer.type === 'line' && id.startsWith('railway')) {
-      set('line-color', '#1B202A');
-      set('line-opacity', 0.6);
-    }
-    else if (layer.type === 'line' && id.startsWith('boundary')) set('line-color', '#1E2433');
-    else if (layer.type === 'symbol') {
-      set('text-color', id === 'water_name' ? '#3E6E9C' : '#5F6B7E');
-      set('text-halo-color', '#070A10');
-      if (id.startsWith('highway') || id.startsWith('road')) map.setLayoutProperty(id, 'visibility', 'none');
-    }
-  }
-}
 
 function addTubeLayers(map: MlMap) {
   const empty = { type: 'FeatureCollection' as const, features: [] };
@@ -68,28 +38,28 @@ function addTubeLayers(map: MlMap) {
     type: 'circle',
     source: 'tube-stations',
     filter: ['!', ['get', 'interchange']],
-    paint: { 'circle-radius': w(1.4, 3.6, 6) as never, 'circle-color': '#EDF5FF', 'circle-stroke-color': '#070A10', 'circle-stroke-width': 1 },
+    paint: { 'circle-radius': w(1.4, 3.6, 6) as never, 'circle-color': '#101828', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.5 },
   });
   map.addLayer({
     id: 'tube-interchange-outer',
     type: 'circle',
     source: 'tube-stations',
     filter: ['get', 'interchange'],
-    paint: { 'circle-radius': w(3, 7, 11) as never, 'circle-color': '#070A10', 'circle-stroke-color': '#EDF5FF', 'circle-stroke-width': w(1, 1.8, 2.4) as never },
+    paint: { 'circle-radius': w(3, 7, 11) as never, 'circle-color': '#ffffff', 'circle-stroke-color': '#101828', 'circle-stroke-width': w(1, 1.8, 2.4) as never },
   });
   map.addLayer({
     id: 'tube-interchange-inner',
     type: 'circle',
     source: 'tube-stations',
     filter: ['get', 'interchange'],
-    paint: { 'circle-radius': w(1.2, 3.2, 5) as never, 'circle-color': '#070A10', 'circle-stroke-color': '#EDF5FF', 'circle-stroke-width': w(0.8, 1.4, 2) as never },
+    paint: { 'circle-radius': w(1.2, 3.2, 5) as never, 'circle-color': '#101828', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': w(0.8, 1.4, 2) as never },
   });
   map.addLayer({
     id: 'tube-station-hover',
     type: 'circle',
     source: 'tube-stations',
     filter: ['==', ['get', 'id'], ''],
-    paint: { 'circle-radius': w(5, 10, 14) as never, 'circle-color': 'rgba(237,245,255,0.08)', 'circle-stroke-color': '#EDF5FF', 'circle-stroke-width': 2 },
+    paint: { 'circle-radius': w(5, 10, 14) as never, 'circle-color': 'rgba(16,24,40,0.08)', 'circle-stroke-color': '#101828', 'circle-stroke-width': 2 },
   });
   const label = (id: string, minzoom: number, filter: unknown) =>
     map.addLayer({
@@ -99,33 +69,42 @@ function addTubeLayers(map: MlMap) {
       minzoom,
       filter: filter as never,
       layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Regular'], 'text-size': ['interpolate', ['linear'], ['zoom'], 11, 10, 15, 13], 'text-offset': [0, 1], 'text-anchor': 'top', 'text-optional': true, 'text-padding': 4 },
-      paint: { 'text-color': '#C9D3E0', 'text-halo-color': '#070A10', 'text-halo-width': 1.4 },
+      paint: { 'text-color': '#101828', 'text-halo-color': '#ffffff', 'text-halo-width': 1.6 },
     });
   label('tube-labels-major', 11, ['get', 'interchange']);
   label('tube-labels', 13, ['!', ['get', 'interchange']]);
+  map.addSource('journey', { type: 'geojson', data: empty });
+  map.addSource('journey-stops', { type: 'geojson', data: empty });
+  map.addLayer({
+    id: 'journey-halo',
+    type: 'line',
+    source: 'journey',
+    layout: { 'line-join': 'round', 'line-cap': 'round' },
+    paint: { 'line-color': '#101828', 'line-width': 12, 'line-opacity': 0.18, 'line-blur': 0.6 },
+  });
+  map.addLayer({
+    id: 'journey-line',
+    type: 'line',
+    source: 'journey',
+    layout: { 'line-join': 'round', 'line-cap': 'round' },
+    paint: { 'line-color': ['get', 'colour'], 'line-width': 7, 'line-opacity': 0.96 },
+  });
+  map.addLayer({
+    id: 'journey-stops',
+    type: 'circle',
+    source: 'journey-stops',
+    paint: { 'circle-radius': ['case', ['get', 'end'], 7, 4.5], 'circle-color': '#fff', 'circle-stroke-color': ['get', 'colour'], 'circle-stroke-width': 2.4 },
+  });
 }
 
 export default function GeoTubeMap(props: TubeMapProps) {
-  const { network, visibleLines, focusLineId, selectedStationId, hoveredStationId, sightings, reducedMotion, focusRequest } = props;
-  const wrapRef = useRef<HTMLDivElement>(null);
+  const { network, visibleLines, focusLineId, selectedStationId, hoveredStationId, reducedMotion, focusRequest, journey } = props;
   const mapEl = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const mapRef = useRef<MlMap | null>(null);
   const [styleVersion, setStyleVersion] = useState(0);
   const [basemapNote, setBasemapNote] = useState<string | null>(null);
-  const [hover, setHover] = useState<HoverTrain | null>(null);
   const propsRef = useRef(props);
   propsRef.current = props;
-  const framePositions = useRef<{ t: AnimatedTrain; x: number; y: number }[]>([]);
-
-  const animator = useMemo(() => new TrainAnimator((id) => {
-    const s = network.stations[id];
-    return s ? [s.lon, s.lat] : null;
-  }), [network]);
-
-  useEffect(() => {
-    if (sightings) animator.update(sightings, reducedMotion);
-  }, [animator, sightings, reducedMotion]);
 
   // Map instance – created once.
   useEffect(() => {
@@ -163,7 +142,6 @@ export default function GeoTubeMap(props: TubeMapProps) {
     });
     map.on('style.load', () => {
       window.clearTimeout(timer);
-      recolour(map);
       addTubeLayers(map);
       setStyleVersion((v) => v + 1);
     });
@@ -178,37 +156,20 @@ export default function GeoTubeMap(props: TubeMapProps) {
       )[0];
       return (f?.properties?.id as string | undefined) ?? null;
     };
-    const trainAt = (x: number, y: number) => {
-      let best: (typeof framePositions.current)[number] | null = null;
-      let bestD = 11;
-      for (const p of framePositions.current) {
-        const d = Math.hypot(p.x - x, p.y - y);
-        if (d < bestD) {
-          best = p;
-          bestD = d;
-        }
-      }
-      return best;
-    };
     let lastHoverStation: string | null = null;
     map.on('mousemove', (e) => {
-      const t = trainAt(e.point.x, e.point.y);
-      const station = t ? null : stationAt(e.point);
-      setHover(t ? { sighting: t.t.sighting, secondsToNext: t.t.secondsToNext, x: e.point.x, y: e.point.y } : null);
+      const station = stationAt(e.point);
       if (station !== lastHoverStation) {
         lastHoverStation = station;
         propsRef.current.onHoverStation(station);
       }
-      map.getCanvas().style.cursor = t || station ? 'pointer' : '';
+      map.getCanvas().style.cursor = station ? 'pointer' : '';
     });
     map.on('mouseout', () => {
-      setHover(null);
       if (lastHoverStation) propsRef.current.onHoverStation((lastHoverStation = null));
     });
     map.on('click', (e) => {
-      const t = trainAt(e.point.x, e.point.y);
-      const id = t ? t.t.sighting.toStationId : stationAt(e.point);
-      if (t) setHover({ sighting: t.t.sighting, secondsToNext: t.t.secondsToNext, x: e.point.x, y: e.point.y });
+      const id = stationAt(e.point);
       if (id) propsRef.current.onSelectStation(id);
     });
 
@@ -231,7 +192,7 @@ export default function GeoTubeMap(props: TubeMapProps) {
       features: network.lines.flatMap((l) =>
         l.geometry.map((coords) => ({
           type: 'Feature' as const,
-          properties: { lineId: l.id, colour: l.colour, casing: l.id === 'northern' ? '#7D8898' : '#070A10' },
+          properties: { lineId: l.id, colour: l.colour, casing: '#ffffff' },
           geometry: { type: 'LineString' as const, coordinates: coords },
         })),
       ),
@@ -263,21 +224,73 @@ export default function GeoTubeMap(props: TubeMapProps) {
     map.setFilter('tube-interchange-inner', ['all', ['get', 'interchange'], inShown] as never);
     map.setFilter('tube-labels-major', ['all', ['get', 'interchange'], ['in', ['get', 'id'], ['literal', focusIds]]] as never);
     map.setFilter('tube-labels', ['all', ['!', ['get', 'interchange']], ['in', ['get', 'id'], ['literal', focusIds]]] as never);
-    const dimLine = focusLineId ? ['case', ['==', ['get', 'lineId'], focusLineId], 1, 0.16] : 1;
-    const dimStation = focusLineId ? ['case', ['in', ['get', 'id'], ['literal', focusIds]], 1, 0.25] : 1;
+    const dimLine = propsRef.current.journey
+      ? 0.32
+      : focusLineId
+        ? ['case', ['==', ['get', 'lineId'], focusLineId], 1, 0.28]
+        : 1;
+    const dimStation = propsRef.current.journey
+      ? 0.4
+      : focusLineId
+        ? ['case', ['in', ['get', 'id'], ['literal', focusIds]], 1, 0.28]
+        : 1;
     map.setPaintProperty('tube-line', 'line-opacity', dimLine as never);
     map.setPaintProperty('tube-casing', 'line-opacity', dimLine as never);
     for (const l of ['tube-station', 'tube-interchange-outer', 'tube-interchange-inner']) {
       map.setPaintProperty(l, 'circle-opacity', dimStation as never);
       map.setPaintProperty(l, 'circle-stroke-opacity', dimStation as never);
     }
-  }, [network, visibleLines, focusLineId, styleVersion]);
+  }, [network, visibleLines, focusLineId, styleVersion, journey]);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !styleVersion) return;
     map.setFilter('tube-station-hover', ['in', ['get', 'id'], ['literal', [hoveredStationId, selectedStationId].filter(Boolean)]] as never);
   }, [hoveredStationId, selectedStationId, styleVersion]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !styleVersion) return;
+    const src = map.getSource('journey') as GeoJSONSource | undefined;
+    const stops = map.getSource('journey-stops') as GeoJSONSource | undefined;
+    const empty = { type: 'FeatureCollection' as const, features: [] };
+    if (!journey?.legs.length) {
+      src?.setData(empty);
+      stops?.setData(empty);
+      return;
+    }
+    const features: { type: 'Feature'; properties: Record<string, unknown>; geometry: { type: 'LineString'; coordinates: [number, number][] } }[] = [];
+    const stopFeatures: { type: 'Feature'; properties: Record<string, unknown>; geometry: { type: 'Point'; coordinates: [number, number] } }[] = [];
+    const bounds = new maplibregl.LngLatBounds();
+    let hasPt = false;
+    journey.legs.forEach((leg, i) => {
+      const coords: [number, number][] =
+        leg.path.length > 1
+          ? leg.path
+          : leg.from.lng != null && leg.from.lat != null && leg.to.lng != null && leg.to.lat != null
+            ? [
+                [leg.from.lng, leg.from.lat],
+                [leg.to.lng, leg.to.lat],
+              ]
+            : [];
+      if (coords.length > 1) {
+        features.push({ type: 'Feature', properties: { colour: leg.colour, mode: leg.mode }, geometry: { type: 'LineString', coordinates: coords } });
+        for (const c of coords) {
+          bounds.extend(c as [number, number]);
+          hasPt = true;
+        }
+      }
+      if (leg.from.lng != null && leg.from.lat != null) {
+        stopFeatures.push({ type: 'Feature', properties: { colour: leg.colour, end: i === 0 }, geometry: { type: 'Point', coordinates: [leg.from.lng, leg.from.lat] } });
+      }
+      if (i === journey.legs.length - 1 && leg.to.lng != null && leg.to.lat != null) {
+        stopFeatures.push({ type: 'Feature', properties: { colour: '#E31E36', end: true }, geometry: { type: 'Point', coordinates: [leg.to.lng, leg.to.lat] } });
+      }
+    });
+    src?.setData({ type: 'FeatureCollection', features });
+    stops?.setData({ type: 'FeatureCollection', features: stopFeatures });
+    if (hasPt) map.fitBounds(bounds, { padding: { top: 56, bottom: 48, left: 48, right: 48 }, duration: reducedMotion ? 0 : 500, maxZoom: 13.5 });
+  }, [journey, styleVersion, reducedMotion]);
 
   // Selected station pulse.
   useEffect(() => {
@@ -311,59 +324,9 @@ export default function GeoTubeMap(props: TubeMapProps) {
     }
   }, [focusRequest, network, reducedMotion]);
 
-  // Dynamic layer: trains on a canvas overlay, redrawn every frame (no network calls here).
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const wrap = wrapRef.current;
-    if (!canvas || !wrap) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    let raf = 0;
-    const resize = () => {
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
-      canvas.width = wrap.clientWidth * dpr;
-      canvas.height = wrap.clientHeight * dpr;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    };
-    const ro = new ResizeObserver(resize);
-    ro.observe(wrap);
-    resize();
-    const draw = () => {
-      raf = requestAnimationFrame(draw);
-      const map = mapRef.current;
-      if (!map) return;
-      const { visibleLines: vis, focusLineId: focus } = propsRef.current;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const zoom = map.getZoom();
-      const len = zoom < 11 ? 9 : zoom < 13 ? 13 : 17;
-      const w = zoom < 11 ? 5 : zoom < 13 ? 6.5 : 8;
-      const out: typeof framePositions.current = [];
-      const trains = animator.frame((s) => vis.has(s.lineId));
-      for (const t of trains) {
-        const p = map.project(t.pos as [number, number]);
-        if (p.x < -20 || p.y < -20 || p.x > wrap.clientWidth + 20 || p.y > wrap.clientHeight + 20) continue;
-        const angle = Math.atan2(-t.heading[1] * 1.6, t.heading[0]);
-        const dim = focus && t.sighting.lineId !== focus;
-        const id = t.sighting.lineId;
-        drawCapsule(ctx, p.x, p.y, angle, len, w, trainFill(id), id === 'northern' ? '#D9E1EC' : 'rgba(237,245,255,0.55)', dim ? 0.18 : 1);
-        if (!dim) out.push({ t, x: p.x, y: p.y });
-      }
-      framePositions.current = out;
-    };
-    raf = requestAnimationFrame(draw);
-    return () => {
-      cancelAnimationFrame(raf);
-      ro.disconnect();
-    };
-  }, [animator]);
-
-  const hoverLine = hover ? onDark(hover.sighting.lineId) : null;
-
   return (
-    <div ref={wrapRef} className="tmap-geo">
+    <div className="tmap-geo">
       <div ref={mapEl} className="tmap-geo__map" aria-label="Mapa Londynu z liniami metra. Wybierz stację z listy lub wyszukiwarki, aby zobaczyć odjazdy." role="region" />
-      <canvas ref={canvasRef} className="tmap-geo__trains" aria-hidden="true" />
-      {hover && hoverLine && <TrainTooltip hover={hover} network={network} />}
       {basemapNote && <p className="tmap-note">{basemapNote}</p>}
     </div>
   );

@@ -9,10 +9,20 @@ import {
   adaptTimetable,
   mergeNetwork,
 } from '../src/lib/tfl/adapters';
+import { adaptJourneys } from '../src/lib/tfl/journey';
 import { indexNetwork, type NetworkIndex } from '../src/lib/tfl/network';
 import { buildSightings } from '../src/lib/tfl/trains';
-import type { RawLine, RawPrediction, RawRoute, RawRouteSequence, RawSearchResponse, RawStopPoint, RawTimetableResponse } from '../src/lib/tfl/raw';
-import type { ApiErrorBody, ApiEnvelope, TubeNetwork } from '../src/lib/tfl/types';
+import type {
+  RawJourneyResponse,
+  RawLine,
+  RawPrediction,
+  RawRoute,
+  RawRouteSequence,
+  RawSearchResponse,
+  RawStopPoint,
+  RawTimetableResponse,
+} from '../src/lib/tfl/raw';
+import type { ApiErrorBody, ApiEnvelope, StationLite, TubeNetwork } from '../src/lib/tfl/types';
 import { TtlCache } from './cache';
 import { TflError, type TflGet } from './tfl-client';
 
@@ -30,10 +40,26 @@ export const TTL = {
   arrivals: 15 * SEC,
   vehicles: 20 * SEC,
   timetable: 10 * MIN,
+  journey: MIN,
 };
 
 const STATUS_MODES = new Set(['tube', 'elizabeth-line', 'overground', 'dlr', 'national-rail']);
 const STATION_ID = /^[A-Z0-9]{4,20}$/i;
+const LAT_LNG = /^(-?\d{1,2}(?:\.\d{1,7})?),(-?\d{1,3}(?:\.\d{1,7})?)$/;
+const JOURNEY_MODES = 'tube,dlr,overground,elizabeth-line,walking';
+
+/** Journey ends: "lat,lng" inside Greater London's surroundings, or a NaPTAN stop id. */
+export function parseJourneyEnd(raw: string | null): string | null {
+  const v = (raw ?? '').trim();
+  const ll = v.match(LAT_LNG);
+  if (ll) {
+    const lat = Number(ll[1]);
+    const lng = Number(ll[2]);
+    if (lat < 51.2 || lat > 51.8 || lng < -0.65 || lng > 0.4) return null;
+    return `${lat.toFixed(5)},${lng.toFixed(5)}`;
+  }
+  return STATION_ID.test(v) ? v.toUpperCase() : null;
+}
 
 export interface ApiResponse {
   status: number;
@@ -84,6 +110,38 @@ export function createTransportApi(tfl: TflGet, cache = new TtlCache(), now: () 
     }
 
     if (p === '/api/transport/tube/network') return wrap(await network());
+
+    if (p === '/api/transport/tube/stations') {
+      const n = await network();
+      const stations: StationLite[] = Object.values(n.value.stations).map((s) => ({ id: s.id, name: s.name, lat: s.lat, lon: s.lon, lines: s.lines, zone: s.zone }));
+      return wrap({ ...n, value: stations });
+    }
+
+    if (p === '/api/transport/journey') {
+      const from = parseJourneyEnd(q.get('from'));
+      const to = parseJourneyEnd(q.get('to'));
+      if (!from || !to) return fail(400, 'bad-request', 'Podaj punkt początkowy i docelowy w Londynie.');
+      if (from === to) return fail(400, 'bad-request', 'Punkt początkowy i docelowy muszą się różnić.');
+      const params: Record<string, string> = { mode: JOURNEY_MODES, journeyPreference: 'leasttime', alternativeWalking: 'true' };
+      const time = q.get('time');
+      const date = q.get('date');
+      if (time) {
+        if (!/^\d{4}$/.test(time)) return fail(400, 'bad-request', 'Nieprawidłowa godzina.');
+        params.time = time;
+        params.timeIs = q.get('timeIs') === 'arriving' ? 'Arriving' : 'Departing';
+      }
+      if (date) {
+        if (!/^\d{8}$/.test(date)) return fail(400, 'bad-request', 'Nieprawidłowa data.');
+        params.date = date;
+      }
+      const key = `journey:${from}:${to}:${params.date ?? ''}:${params.time ?? 'now'}:${params.timeIs ?? ''}`;
+      const res = await cache.get(key, TTL.journey, async () => {
+        const journeys = adaptJourneys(await tfl<RawJourneyResponse>(`/Journey/JourneyResults/${encodeURIComponent(from)}/to/${encodeURIComponent(to)}`, params));
+        if (!journeys.length) throw new TflError('no-data', 'TfL nie znalazł połączenia dla tej trasy.', 404);
+        return journeys;
+      });
+      return wrap(res);
+    }
 
     if ((m = p.match(/^\/api\/transport\/tube\/lines\/([a-z-]+)\/route$/))) {
       const id = m[1]!;

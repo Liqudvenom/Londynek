@@ -1,23 +1,46 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, BadgeCheck, Bath, BedDouble, Building, Calendar, Clock, Fuel, Gauge, MapPin, Settings2, Star, TrainFront } from 'lucide-react';
+import { ArrowRight, BadgeCheck, Bath, BedDouble, Building, Calendar, Clock, Fuel, Gauge, MapPin, Settings2, Star } from 'lucide-react';
+import { GeoStrip, type GeoStripVariant } from '@/components/location/GeoStrip';
+import { MiniMap } from '@/components/location/MiniMap';
 import { Img } from '@/components/ui/Img';
 import { SaveButton } from '@/components/ui/SaveButton';
 import { CATEGORY_ACCENT, categoryMeta } from '@/data/classifieds';
 import { PROPERTY_TYPE_LABEL } from '@/data/properties';
 import { formatGBP, formatNumber } from '@/lib/format';
-import type { Listing, Property, Service, Vehicle } from '@/types';
+import { MAP_KIND_COLOUR } from '@/lib/location/mapItems';
+import type { ClassifiedCategory, Listing, Property, Service, Vehicle } from '@/types';
 import './cards.css';
 
 const detailUrl = (id: string) => `/ogloszenie/${id}`;
 
 type ListingLayout = 'rail' | 'row' | 'grid';
 
+const STRIP_VARIANT: Partial<Record<ClassifiedCategory, GeoStripVariant>> = { praca: 'job', nieruchomosci: 'housing', uslugi: 'service' };
+const PIN_COLOUR: Partial<Record<ClassifiedCategory, string>> = { praca: MAP_KIND_COLOUR.jobs, nieruchomosci: MAP_KIND_COLOUR.housing, uslugi: MAP_KIND_COLOUR.services };
+
+interface ListingCardProps {
+  listing: Listing;
+  layout?: ListingLayout;
+  /** List ↔ map hover sync */
+  highlighted?: boolean;
+  onHover?: (id: string | null) => void;
+  /** Hide the mini map (e.g. when a big map is already next to the list) */
+  hideMap?: boolean;
+}
+
 /** Generic classified card. `row` = marketplace list, `grid`/`rail` = image-first tiles. */
-export function ListingCard({ listing, layout = 'grid' }: { listing: Listing; layout?: ListingLayout }) {
+export function ListingCard({ listing, layout = 'grid', highlighted = false, onHover, hideMap = false }: ListingCardProps) {
   const meta = categoryMeta(listing.category);
   const accent = CATEGORY_ACCENT[listing.category];
+  const geo = listing.geo;
   return (
-    <article className={`listing listing--${layout} hover-zoom ${listing.promoted ? 'is-promoted' : ''}`}>
+    <article
+      className={`listing listing--${layout} hover-zoom ${listing.promoted ? 'is-promoted' : ''} ${highlighted ? 'is-linked' : ''}`}
+      onMouseEnter={onHover ? () => onHover(listing.id) : undefined}
+      onMouseLeave={onHover ? () => onHover(null) : undefined}
+      onFocus={onHover ? () => onHover(listing.id) : undefined}
+      onBlur={onHover ? () => onHover(null) : undefined}
+    >
       <div className="media listing__media">
         {listing.image ? (
           <Img name={listing.image} alt="" sizes={layout === 'row' ? '240px' : '(max-width: 640px) 80vw, 280px'} />
@@ -46,10 +69,12 @@ export function ListingCard({ listing, layout = 'grid' }: { listing: Listing; la
             {listing.title}
           </Link>
         </h3>
-        <p className="listing__location">
-          <MapPin size={14} aria-hidden="true" /> {listing.location}
-          {listing.postcode && <span className="postcode">{listing.postcode}</span>}
-        </p>
+        {!geo && (
+          <p className="listing__location">
+            <MapPin size={14} aria-hidden="true" /> {listing.location}
+            {listing.postcode && <span className="postcode">{listing.postcode}</span>}
+          </p>
+        )}
         {layout === 'row' && <p className="listing__desc">{listing.description}</p>}
         {layout === 'row' && (
           <ul className="listing__attrs">
@@ -64,14 +89,28 @@ export function ListingCard({ listing, layout = 'grid' }: { listing: Listing; la
             <Clock size={13} aria-hidden="true" /> {listing.postedAgo}
           </span>
         </div>
-      </div>
-      <div className="listing__save">
-        <SaveButton id={listing.id} label={listing.title} variant={layout === 'row' ? 'plain' : 'floating'} />
+        {geo && (
+          <div className="card-geo card-geo--stack">
+            <GeoStrip geo={geo} name={listing.title} listingId={listing.id} variant={STRIP_VARIANT[listing.category]} compact={layout === 'rail'} />
+            {!hideMap && layout === 'grid' && <MiniMap geo={geo} listingId={listing.id} label={listing.title} colour={PIN_COLOUR[listing.category]} />}
+          </div>
+        )}
       </div>
       {layout === 'row' && (
-        <span className="listing__cta" aria-hidden="true">
-          Zobacz szczegóły <ArrowRight size={16} />
-        </span>
+        <div className="listing__side">
+          <div className="listing__side-save">
+            <SaveButton id={listing.id} label={listing.title} variant="plain" />
+          </div>
+          {geo && !hideMap && <MiniMap geo={geo} listingId={listing.id} label={listing.title} colour={PIN_COLOUR[listing.category]} className="listing__sidemap" />}
+          <span className="listing__cta" aria-hidden="true">
+            Zobacz szczegóły <ArrowRight size={16} />
+          </span>
+        </div>
+      )}
+      {layout !== 'row' && (
+        <div className="listing__save">
+          <SaveButton id={listing.id} label={listing.title} variant="floating" />
+        </div>
       )}
     </article>
   );
@@ -126,14 +165,18 @@ export function PropertyCard({ property, onHover }: { property: Property; onHove
             </li>
           )}
         </ul>
-        <div className="property__loc">
-          <span>
-            <MapPin size={14} aria-hidden="true" /> {property.location}, <span className="postcode">{property.postcode}</span>
-          </span>
-          <span>
-            <TrainFront size={14} aria-hidden="true" /> {property.commuteMin} min do centrum
-          </span>
-        </div>
+        {property.geo ? (
+          <div className="card-geo card-geo--stack">
+            <GeoStrip geo={property.geo} name={property.title} listingId={property.id} variant="housing" />
+            <MiniMap geo={property.geo} listingId={property.id} label={property.title} colour={MAP_KIND_COLOUR.housing} />
+          </div>
+        ) : (
+          <div className="property__loc">
+            <span>
+              <MapPin size={14} aria-hidden="true" /> {property.location}, <span className="postcode">{property.postcode}</span>
+            </span>
+          </div>
+        )}
         <div className="property__agent">
           <span className="property__avatar" aria-hidden="true">
             {property.agency.charAt(0)}
@@ -150,7 +193,7 @@ export function PropertyCard({ property, onHover }: { property: Property; onHove
 
 export function ServiceCard({ service }: { service: Service }) {
   return (
-    <article className={`service hover-zoom ${service.sponsored ? 'is-sponsored' : ''}`}>
+    <article className={`service hover-zoom ${service.sponsored ? 'is-sponsored' : ''} ${service.geo ? 'service--geo' : ''}`}>
       <div className="media ratio-1x1 service__media">
         <Img name={service.image} alt="" sizes="120px" />
       </div>
@@ -174,12 +217,16 @@ export function ServiceCard({ service }: { service: Service }) {
           <span className="service__rating" aria-label={`Ocena ${service.rating} na 5, ${service.reviews} opinii`}>
             <Star size={14} aria-hidden="true" /> {service.rating.toFixed(1)} <span>({service.reviews} opinii)</span>
           </span>
-          <span>
-            <MapPin size={14} aria-hidden="true" /> {service.location}
-          </span>
+          {!service.geo && (
+            <span>
+              <MapPin size={14} aria-hidden="true" /> {service.location}
+            </span>
+          )}
         </div>
+        {service.geo && <GeoStrip geo={service.geo} name={service.name} listingId={service.id} variant="service" />}
       </div>
       <div className="service__aside">
+        {service.geo && <MiniMap geo={service.geo} listingId={service.id} label={service.name} colour={MAP_KIND_COLOUR.services} className="service__map" />}
         <span className="service__price">{service.priceFrom}</span>
         <span className="service__avail">
           <Calendar size={14} aria-hidden="true" /> {service.availability}
@@ -225,11 +272,19 @@ export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
           </li>
         </ul>
         <div className="meta">
-          <span>
-            <MapPin size={14} aria-hidden="true" /> {vehicle.location}
-          </span>
+          {!vehicle.geo && (
+            <span>
+              <MapPin size={14} aria-hidden="true" /> {vehicle.location}
+            </span>
+          )}
           <span>{vehicle.sellerType === 'business' ? `Dealer: ${vehicle.seller}` : `Prywatnie: ${vehicle.seller}`}</span>
         </div>
+        {vehicle.geo && (
+          <div className="card-geo card-geo--stack">
+            <GeoStrip geo={vehicle.geo} name={vehicle.title} listingId={vehicle.id} />
+            <MiniMap geo={vehicle.geo} listingId={vehicle.id} label={vehicle.title} colour={MAP_KIND_COLOUR.market} />
+          </div>
+        )}
       </div>
     </article>
   );

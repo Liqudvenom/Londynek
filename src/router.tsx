@@ -41,9 +41,14 @@ const TransportPage = page(() => import('@/pages/transport/TransportPage'), 'Tra
 const TubePage = page(() => import('@/pages/transport/TubePage'), 'TubePage');
 const TubeLinePage = page(() => import('@/pages/transport/TubeLinePage'), 'TubeLinePage');
 const StationPage = page(() => import('@/pages/transport/StationPage'), 'StationPage');
+const MapPage = page(() => import('@/pages/map/MapPage'), 'MapPage');
+const BusinessDirectoryPage = page(() => import('@/pages/map/BusinessDirectoryPage'), 'BusinessDirectoryPage');
 
-export const router = createBrowserRouter([
-  {
+const basename = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+export const router = createBrowserRouter(
+  [
+    {
     element: <RootLayout />,
     children: [
       { path: '/', element: <HomePage /> },
@@ -77,6 +82,8 @@ export const router = createBrowserRouter([
       { path: '/transport/tube/:line', element: <TubeLinePage /> },
       { path: '/transport/station/:stationId', element: <StationPage /> },
       { path: '/szukaj', element: <SearchPage /> },
+      { path: '/map', element: <MapPage /> },
+      { path: '/polskie-firmy', element: <BusinessDirectoryPage /> },
       { path: '/zaloguj', element: <LoginPage /> },
       { path: '/rejestracja', element: <RegisterPage /> },
       { path: '/dodaj-ogloszenie', element: <AddListingPage /> },
@@ -84,4 +91,6 @@ export const router = createBrowserRouter([
       { path: '*', element: <NotFoundPage /> },
     ],
   },
-]);
+  ],
+  basename ? { basename } : undefined,
+);

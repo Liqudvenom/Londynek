@@ -31,6 +31,8 @@ const api = createApiMiddleware({
   TFL_APP_KEY: process.env.TFL_APP_KEY,
   FORMS_WEBHOOK_URL: process.env.FORMS_WEBHOOK_URL,
   FORMS_STORE_FILE: process.env.FORMS_STORE_FILE,
+  GEOCODER_NOMINATIM_URL: process.env.GEOCODER_NOMINATIM_URL,
+  GEOCODER_USER_AGENT: process.env.GEOCODER_USER_AGENT,
 });
 
 createServer((req, res) => {

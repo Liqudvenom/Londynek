@@ -11,7 +11,6 @@ interface Props {
   statuses: LineStatus[] | null;
   visibleLines: ReadonlySet<string>;
   focusLineId: string | null;
-  trainCounts: Map<string, number>;
   onToggle: (id: string) => void;
   onShowAll: () => void;
   onHideAll: () => void;
@@ -19,7 +18,7 @@ interface Props {
   onStation: (id: string) => void;
 }
 
-export function LineFilterPanel({ network, statuses, visibleLines, focusLineId, trainCounts, onToggle, onShowAll, onHideAll, onFocusLine, onStation }: Props) {
+export function LineFilterPanel({ network, statuses, visibleLines, focusLineId, onToggle, onShowAll, onHideAll, onFocusLine, onStation }: Props) {
   const byId = new Map((statuses ?? []).map((s) => [s.id, s]));
   return (
     <div className="lpanel">
@@ -39,7 +38,6 @@ export function LineFilterPanel({ network, statuses, visibleLines, focusLineId, 
           const st = byId.get(id);
           const on = visibleLines.has(id);
           const focused = focusLineId === id;
-          const n = trainCounts.get(id);
           return (
             <li key={id} className={`lpanel__row${focused ? ' is-focused' : ''}${on ? '' : ' is-off'}`}>
               <label className="lpanel__toggle">
@@ -55,7 +53,6 @@ export function LineFilterPanel({ network, statuses, visibleLines, focusLineId, 
                     ) : (
                       'Status…'
                     )}
-                    {n !== undefined && <> · {n} poc.</>}
                   </span>
                 </span>
               </label>

@@ -44,12 +44,9 @@
   position: sticky;
   top: 0;
   z-index: 500;
-  background: rgb(248 247 242 / 0.96);
-  border-bottom: 1px solid transparent;
+  background: #fff;
+  border-bottom: 1px solid var(--border);
   transition: box-shadow var(--dur-ui) var(--ease-out), border-color var(--dur-ui) var(--ease-out), background var(--dur-ui) var(--ease-out);
-}
-@supports (backdrop-filter: blur(8px)) {
-  .app-header { background: rgb(248 247 242 / 0.88); backdrop-filter: saturate(1.4) blur(10px); }
 }
 .app-header.is-scrolled {
   background: rgb(255 255 255 / 0.97);
@@ -137,21 +134,31 @@
 .desktop-nav__link::after {
   content: '';
   position: absolute;
-  left: 10px;
-  right: 10px;
+  left: 8px;
+  right: 8px;
   bottom: 0;
   height: 3px;
   border-radius: 3px 3px 0 0;
-  background: var(--brand-red);
+  background: var(--nav-line, var(--brand-red));
   transform: scaleX(0);
-  transform-origin: left;
-  transition: transform var(--dur-ui) var(--ease-out);
+  transform-origin: left center;
+  transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
 }
-.desktop-nav__link:hover { color: var(--brand-red-dark); }
-.desktop-nav__link:hover::after { transform: scaleX(0.4); }
+.desktop-nav__list > li:nth-child(1) .desktop-nav__link { --nav-line: #157f3d; --nav-ink: #146c3a; }
+.desktop-nav__list > li:nth-child(2) .desktop-nav__link { --nav-line: #e31e36; --nav-ink: #b42318; }
+.desktop-nav__list > li:nth-child(3) .desktop-nav__link { --nav-line: #175cd3; --nav-ink: #123f96; }
+.desktop-nav__list > li:nth-child(4) .desktop-nav__link { --nav-line: #c2414a; --nav-ink: #9f1239; }
+.desktop-nav__list > li:nth-child(5) .desktop-nav__link { --nav-line: #d4a017; --nav-ink: #8a6100; }
+.desktop-nav__list > li:nth-child(6) .desktop-nav__link { --nav-line: #b8860b; --nav-ink: #7a5a08; }
+.desktop-nav__list > li:nth-child(7) .desktop-nav__link { --nav-line: #2563eb; --nav-ink: #1e40af; }
+.desktop-nav__list > li:nth-child(8) .desktop-nav__link { --nav-line: #027a48; --nav-ink: #05603a; }
+.desktop-nav__list > li:nth-child(9) .desktop-nav__link { --nav-line: #be123c; --nav-ink: #9f1239; }
+.desktop-nav__link:hover { color: var(--nav-ink, var(--brand-red-dark)); }
+.desktop-nav__link:hover::after { transform: scaleX(0.55); }
 .desktop-nav__link.active,
-.desktop-nav__link[aria-current='page'] { color: var(--brand-red-dark); }
+.desktop-nav__link[aria-current='page'] { color: var(--nav-ink, var(--brand-red-dark)); }
 .desktop-nav__link.active::after,
+.desktop-nav__link[aria-current='page']::after,
 .desktop-nav__link[aria-expanded='true']::after { transform: scaleX(1); }
 .desktop-nav__more svg { transition: transform var(--dur-ui) var(--ease-out); }
 .desktop-nav__more[aria-expanded='true'] svg { transform: rotate(180deg); }

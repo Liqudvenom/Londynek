@@ -1,6 +1,9 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, Briefcase, CalendarDays, Clock, Home, MapPin, Newspaper } from 'lucide-react';
+import { GeoStrip } from '@/components/location/GeoStrip';
+import { MiniMap } from '@/components/location/MiniMap';
 import { Img } from '@/components/ui/Img';
+import { MAP_KIND_COLOUR } from '@/lib/location/mapItems';
 import { Icon } from '@/components/ui/Icon';
 import { SaveButton } from '@/components/ui/SaveButton';
 import { dateBlock, formatGBP, formatRange } from '@/lib/format';
@@ -53,6 +56,13 @@ export function EventCard({ event, layout = 'card' }: { event: EventItem; layout
             <MapPin size={14} aria-hidden="true" /> {event.venue}, {event.borough}
           </span>
         </div>
+        {layout !== 'timeline' && event.geo && (
+          <div className={`card-geo ${layout === 'row' ? '' : 'card-geo--stack'}`}>
+            <GeoStrip geo={event.geo} name={event.venue} listingId={event.id} variant="event" compact={layout === 'card'} />
+            <MiniMap geo={event.geo} listingId={event.id} label={event.venue} colour={MAP_KIND_COLOUR.events} />
+
+          </div>
+        )}
         {layout === 'card' && (
           <div className="event__foot">
             <span className="event__price">{event.priceLabel}</span>

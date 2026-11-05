@@ -1,4 +1,7 @@
 import type { ImageName } from '@/data/images.generated';
+import type { GeoLocation } from '@/lib/location/types';
+
+export type { GeoLocation };
 
 export type Accent = 'jobs' | 'housing' | 'help' | 'news' | 'events' | 'services' | 'navy';
 
@@ -77,6 +80,8 @@ export type SellerType = 'private' | 'business';
 
 export interface Listing {
   id: string;
+  /** Structured location; absent for "all of London" listings. */
+  geo?: GeoLocation;
   category: ClassifiedCategory;
   subcategory: string;
   title: string;
@@ -101,6 +106,7 @@ export type PropertyType = 'room' | 'flat' | 'house' | 'flatshare' | 'studio';
 
 export interface Property {
   id: string;
+  geo?: GeoLocation;
   title: string;
   mode: PropertyMode;
   type: PropertyType;
@@ -126,6 +132,7 @@ export type Schedule = 'full-time' | 'part-time' | 'shifts';
 
 export interface Job {
   id: string;
+  geo?: GeoLocation;
   title: string;
   company: string;
   companyColor: string;
@@ -161,6 +168,7 @@ export interface Candidate {
 
 export interface Service {
   id: string;
+  geo?: GeoLocation;
   name: string;
   category: string;
   tagline: string;
@@ -178,6 +186,7 @@ export interface Service {
 
 export interface Vehicle {
   id: string;
+  geo?: GeoLocation;
   title: string;
   make: string;
   model: string;
@@ -199,6 +208,7 @@ export type EventCategory = 'Koncerty' | 'Kultura' | 'Rodzina' | 'Biznes' | 'Spo
 
 export interface EventItem {
   id: string;
+  geo?: GeoLocation;
   title: string;
   start: string;
   end?: string;

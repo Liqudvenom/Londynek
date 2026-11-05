@@ -5,6 +5,7 @@ import { Img } from '@/components/ui/Img';
 import { SaveButton } from '@/components/ui/SaveButton';
 import { Breadcrumbs, EmptyState } from '@/components/ui/primitives';
 import { NewsCompactItem } from '@/components/cards/EditorialCards';
+import { Reactions } from '@/components/social/Reactions';
 import { AdSlot } from '@/components/ads/AdSlot';
 import { ALL_ARTICLES, KIND_ROUTE, articleById } from '@/data/articles';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -80,6 +81,7 @@ export function ArticlePage() {
             </button>
           </span>
         </div>
+        <Reactions id={article.id} labelled />
       </header>
 
       <figure className="article__figure media">

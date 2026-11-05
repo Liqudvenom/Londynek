@@ -10,6 +10,7 @@ import './styles/components.css';
 import './styles/ui.css';
 import './components/london/london.css';
 import { router } from './router';
+import { ReactionsProvider } from './context/ReactionsContext';
 import { SavedProvider } from './context/SavedContext';
 import { ToastProvider } from './context/ToastContext';
 
@@ -17,7 +18,9 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ToastProvider>
       <SavedProvider>
-        <RouterProvider router={router} />
+        <ReactionsProvider>
+          <RouterProvider router={router} />
+        </ReactionsProvider>
       </SavedProvider>
     </ToastProvider>
   </StrictMode>,

@@ -1,58 +1,60 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { ALL_ARTICLES } from '@/data/articles';
-import { DISTRICTS, districtById } from '@/data/districts';
-import { EVENTS } from '@/data/events';
-import { JOBS } from '@/data/jobs';
-import { PROPERTIES } from '@/data/properties';
-import { SERVICES } from '@/data/services';
-import { formatGBP, formatRange } from '@/lib/format';
-import { mapPoint } from '@/lib/mapProjection';
+import { countNear, itemsNear, MAP_KIND_LABEL, type MapKind } from '@/lib/location/mapItems';
 
-/** Nearest Londynek district to a coordinate (district positions use the same map projection). */
-export function nearestDistrict(lat: number, lon: number) {
-  const p = mapPoint(lat, lon);
-  let best = DISTRICTS[0]!;
-  let bestD = Infinity;
-  for (const d of DISTRICTS) {
-    const dist = Math.hypot(d.map.x - p.x, d.map.y - p.y);
-    if (dist < bestD) {
-      best = d;
-      bestD = dist;
-    }
-  }
-  return best;
+const NEAR_RADIUS = 1500;
+const COUNT_KINDS: MapKind[] = ['jobs', 'housing', 'services', 'business', 'events'];
+
+function around(lat: number, lon: number, stationName: string, cat?: MapKind) {
+  const q = new URLSearchParams({ lat: lat.toFixed(5), lng: lon.toFixed(5), r: String(NEAR_RADIUS), q: stationName });
+  if (cat) q.set('cat', cat);
+  return `/map?${q}`;
 }
 
-/** "W okolicy stacji" – Londynek content near the station. Uses the site's demo data until the real API is connected. */
-export function NearStation({ lat, lon, stationName }: { lat: number; lon: number; stationName: string }) {
-  const district = nearestDistrict(lat, lon);
-  const region = district.region;
-  const rooms = PROPERTIES.filter((p) => p.mode === 'rent' && districtById(p.district)?.region === region).slice(0, 3);
-  const jobs = JOBS.filter((j) => j.region === region).slice(0, 3);
-  const events = EVENTS.filter((e) => e.region === region).slice(0, 3);
-  const firms = SERVICES.filter((s) => s.region === region).slice(0, 3);
-  const news = ALL_ARTICLES.filter((a) => a.region === region).slice(0, 3);
+/** "Co jest w pobliżu?" – listings within walking distance of a Tube station (demo data). */
+export function NearStation({ lat, lon, stationName, className = '' }: { lat: number; lon: number; stationName: string; className?: string }) {
+  const nearby = itemsNear(lat, lon, NEAR_RADIUS);
+  const counts = countNear(lat, lon, NEAR_RADIUS);
+  const firms = nearby.filter((i) => i.kind === 'business' || i.kind === 'services');
+  const news = ALL_ARTICLES.slice(0, 3);
 
   const cols = [
-    { title: 'Pokoje', to: '/ogloszenia/nieruchomosci', items: rooms.map((p) => ({ id: p.id, to: `/ogloszenie/${p.id}`, label: p.title, meta: `${formatGBP(p.price)}/mies. · ${p.location}` })) },
-    { title: 'Praca', to: '/ogloszenia/praca', items: jobs.map((j) => ({ id: j.id, to: `/ogloszenie/${j.id}`, label: j.title, meta: `${j.company} · ${j.location}` })) },
-    { title: 'Wydarzenia', to: '/wydarzenia', items: events.map((e) => ({ id: e.id, to: `/wydarzenia/${e.id}`, label: e.title, meta: formatRange(e.start, e.end) })) },
-    { title: 'Polskie firmy', to: '/ogloszenia/uslugi', items: firms.map((s) => ({ id: s.id, to: `/ogloszenie/${s.id}`, label: s.name, meta: `${s.category} · ${s.location}` })) },
-    { title: 'Wiadomości', to: '/wiadomosci', items: news.map((a) => ({ id: a.id, to: `/artykul/${a.id}`, label: a.title, meta: a.ago })) },
+    { title: MAP_KIND_LABEL.housing, kind: 'housing' as const, items: nearby.filter((i) => i.kind === 'housing').slice(0, 3) },
+    { title: MAP_KIND_LABEL.jobs, kind: 'jobs' as const, items: nearby.filter((i) => i.kind === 'jobs').slice(0, 3) },
+    { title: MAP_KIND_LABEL.events, kind: 'events' as const, items: nearby.filter((i) => i.kind === 'events').slice(0, 3) },
+    { title: 'Polskie firmy', kind: 'business' as const, items: firms.slice(0, 3) },
   ];
 
+  const pills = COUNT_KINDS.filter((k) => counts[k] > 0);
+
   return (
-    <section className="tsec near" aria-labelledby="near-h">
+    <section className={`tsec near ${className}`} aria-labelledby="near-h">
       <div className="tsec__head">
         <h2 id="near-h" className="tsec-title">
-          W okolicy stacji
+          Co jest w pobliżu?
         </h2>
         <span className="demo-label">Dane demonstracyjne</span>
       </div>
       <p className="tsec__lead">
-        Ogłoszenia i treści Londynka z okolicy: {district.name} ({stationName}). Przykładowe wpisy z wersji demonstracyjnej – po podłączeniu API Londynka pojawią się tu prawdziwe ogłoszenia.
+        Ogłoszenia i miejsca w promieniu ok. 1,5 km od {stationName}. Przykładowe wpisy z wersji demonstracyjnej – nie są klientami Londynka.
       </p>
+      {pills.length > 0 && (
+        <ul className="near__counts">
+          {pills.map((k) => (
+            <li key={k}>
+              <Link to={around(lat, lon, stationName, k)}>
+                {MAP_KIND_LABEL[k]} <strong>{counts[k]}</strong>
+              </Link>
+            </li>
+          ))}
+          <li>
+            <Link to={around(lat, lon, stationName)}>
+              Wszystko na mapie <ArrowRight size={13} aria-hidden="true" />
+            </Link>
+          </li>
+        </ul>
+      )}
       <div className="near__grid">
         {cols.map((c) => (
           <div key={c.title} className="near__col">
@@ -61,19 +63,33 @@ export function NearStation({ lat, lon, stationName }: { lat: number; lon: numbe
               <ul>
                 {c.items.map((i) => (
                   <li key={i.id}>
-                    <Link to={i.to}>{i.label}</Link>
-                    <span>{i.meta}</span>
+                    <Link to={i.to}>{i.title}</Link>
+                    <span>{i.priceLabel ?? i.subtitle}</span>
                   </li>
                 ))}
               </ul>
             ) : (
               <p className="near__empty">Brak wpisów w tej okolicy.</p>
             )}
-            <Link to={c.to} className="near__more">
+            <Link to={around(lat, lon, stationName, c.kind)} className="near__more">
               Więcej <ArrowRight size={13} aria-hidden="true" />
             </Link>
           </div>
         ))}
+        <div className="near__col">
+          <h3>Wiadomości</h3>
+          <ul>
+            {news.map((a) => (
+              <li key={a.id}>
+                <Link to={`/artykul/${a.id}`}>{a.title}</Link>
+                <span>{a.ago}</span>
+              </li>
+            ))}
+          </ul>
+          <Link to="/wiadomosci" className="near__more">
+            Więcej <ArrowRight size={13} aria-hidden="true" />
+          </Link>
+        </div>
       </div>
     </section>
   );

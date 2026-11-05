@@ -13,24 +13,24 @@ import type { RegionId } from '@/types';
 import './home.css';
 
 const JOURNEYS: RouteStop[] = [
-  { label: 'Praca', description: 'Oferty pracy w UK', to: '/ogloszenia/praca', icon: 'Briefcase', accent: 'jobs' },
-  { label: 'Pokoje i mieszkania', description: 'Wynajem i nieruchomości', to: '/ogloszenia/nieruchomosci', icon: 'Home', accent: 'housing' },
-  { label: 'Pomoc', description: 'Porady, formalności i wsparcie', to: '/poradnik', icon: 'LifeBuoy', accent: 'help' },
-  { label: 'Wiadomości', description: 'Co słychać w Londynie i UK', to: '/wiadomosci', icon: 'Newspaper', accent: 'news' },
+  { label: 'Ciekawostki', description: 'Historie i smaczki z Londynu', to: '/ciekawostki', icon: 'Sparkles', accent: 'jobs' },
+  { label: 'Ogłoszenia', description: 'Praca, pokoje i mieszkania', to: '/ogloszenia', icon: 'LayoutGrid', accent: 'housing' },
+  { label: 'Wydarzenia', description: 'Koncerty, imprezy, spotkania Polonii', to: '/wydarzenia', icon: 'Ticket', accent: 'help' },
+  { label: 'Transport', description: 'Metro na żywo i trasy po Londynie', to: '/transport/tube', icon: 'TrainFront', accent: 'news' },
   { label: 'Wydarzenia', description: 'Koncerty, imprezy, spotkania Polonii', to: '/wydarzenia', icon: 'CalendarDays', accent: 'events' },
-  { label: 'Polskie firmy', description: 'Usługi, sklepy, lekarze i więcej', to: '/ogloszenia/uslugi', icon: 'Users', accent: 'services' },
+  { label: 'Polskie firmy', description: 'Usługi, sklepy, lekarze i więcej', to: '/polskie-firmy', icon: 'Store', accent: 'services' },
 ];
 
 export function HomePage() {
   useDocumentTitle('Londynek.net – Twój Londyn. Wszystko w jednym miejscu.', true);
-  const [region, setRegion] = useState<RegionId>('west');
+  const [region] = useState<RegionId>('west');
   return (
     <>
       <HomeHero />
       <div className="container home-journeys">
         <LondonRouteNavigation stops={JOURNEYS} label="Najważniejsze sprawy" />
       </div>
-      <LondonDashboard region={region} onRegionChange={setRegion} />
+      <LondonDashboard />
       <Reveal>
         <LatestClassifieds />
       </Reveal>

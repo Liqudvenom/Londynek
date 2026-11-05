@@ -58,7 +58,7 @@ export function MediaPage() {
               <Logo inverse />
             </div>
           </div>
-          <a href="/favicon.svg" download="londynek-sygnet.svg" className="btn btn--sm">
+          <a href={`${import.meta.env.BASE_URL}favicon.svg`} download="londynek-sygnet.svg" className="btn btn--sm">
             <Download size={16} aria-hidden="true" /> Pobierz sygnet (SVG)
           </a>
         </section>

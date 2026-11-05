@@ -1,6 +1,9 @@
 import { Link } from 'react-router-dom';
 import { BadgeCheck, Clock, Globe2, MapPin, Plane, Star } from 'lucide-react';
+import { GeoStrip } from '@/components/location/GeoStrip';
+import { MiniMap } from '@/components/location/MiniMap';
 import { Img } from '@/components/ui/Img';
+import { MAP_KIND_COLOUR } from '@/lib/location/mapItems';
 import { SaveButton } from '@/components/ui/SaveButton';
 import { CONTRACT_LABEL, ENGLISH_LABEL, SCHEDULE_LABEL } from '@/data/jobs';
 import type { Candidate, Job } from '@/types';
@@ -37,9 +40,11 @@ export function JobCard({ job, compact = false }: { job: Job; compact?: boolean 
         <p className="job__salary">{job.salaryLabel}</p>
         {!compact && (
           <ul className="job__tags">
-            <li>
-              <MapPin size={13} aria-hidden="true" /> {job.location}
-            </li>
+            {!job.geo && (
+              <li>
+                <MapPin size={13} aria-hidden="true" /> {job.location}
+              </li>
+            )}
             <li>{CONTRACT_LABEL[job.contract]}</li>
             <li>{SCHEDULE_LABEL[job.schedule]}</li>
             <li>
@@ -51,6 +56,12 @@ export function JobCard({ job, compact = false }: { job: Job; compact?: boolean 
               </li>
             )}
           </ul>
+        )}
+        {!compact && job.geo && (
+          <div className="card-geo">
+            <GeoStrip geo={job.geo} name={`${job.company} – ${job.title}`} listingId={job.id} variant="job" />
+            <MiniMap geo={job.geo} listingId={job.id} label={job.title} colour={MAP_KIND_COLOUR.jobs} />
+          </div>
         )}
         {compact && (
           <p className="job__mini">

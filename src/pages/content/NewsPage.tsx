@@ -1,6 +1,7 @@
 import { Link, useSearchParams } from 'react-router-dom';
 import { Radio } from 'lucide-react';
 import { NewsCard, NewsCompactItem, NewsLead } from '@/components/cards/EditorialCards';
+import { ShortsRail } from '@/components/social/ShortsRail';
 import { AdSlot } from '@/components/ads/AdSlot';
 import { Breadcrumbs, EmptyState } from '@/components/ui/primitives';
 import { LIVE_UPDATES, NEWS, NEWS_SECTIONS } from '@/data/articles';
@@ -61,6 +62,10 @@ export function NewsPage() {
           ))}
         </nav>
       </header>
+
+      <div className="container section--tight">
+        <ShortsRail />
+      </div>
 
       {!lead ? (
         <div className="container section--tight">

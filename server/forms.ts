@@ -9,6 +9,7 @@ export const FORM_KINDS = {
   contact: { required: ['name', 'email', 'subject', 'message'], email: 'email' },
   advertising: { required: ['name', 'company', 'email', 'message'], email: 'email' },
   listing: { required: ['category', 'title', 'location', 'description', 'contact', 'reach'], email: null },
+  partner: { required: ['company', 'companyUrl', 'method', 'contact', 'email', 'consent'], email: 'email' },
 } as const;
 
 export type FormKind = keyof typeof FORM_KINDS;

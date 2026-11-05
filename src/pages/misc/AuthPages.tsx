@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, Bookmark, CheckCircle2, ListPlus } from 'lucide-react';
+import { Bell, Bookmark, CheckCircle2, ListPlus, ShieldCheck } from 'lucide-react';
 import { FormField, PrototypeForm } from '@/components/forms/PrototypeForm';
 import { useToast } from '@/context/ToastContext';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -10,7 +10,22 @@ const BENEFITS = [
   { icon: ListPlus, text: 'Dodawaj i edytuj ogłoszenia' },
   { icon: Bookmark, text: 'Zapisuj oferty na każdym urządzeniu' },
   { icon: Bell, text: 'Powiadomienia o nowych ofertach pracy i mieszkaniach' },
+  { icon: ShieldCheck, text: 'Twój adres zamieszkania nie jest publiczny – na mapie widać tylko okolicę' },
 ];
+
+function RolePicker() {
+  return (
+    <fieldset className="auth__type pform__full">
+      <legend className="field__label">Jestem</legend>
+      <label className="check">
+        <input type="radio" name="role" value="client" defaultChecked /> Zleceniodawcą – szukam wykonawcy lub pracownika
+      </label>
+      <label className="check">
+        <input type="radio" name="role" value="contractor" /> Zleceniobiorcą – szukam pracy lub zleceń
+      </label>
+    </fieldset>
+  );
+}
 
 function AuthShell({ title, lead, children, footer }: { title: string; lead: string; children: ReactNode; footer: ReactNode }) {
   return (
@@ -53,6 +68,7 @@ export function LoginPage() {
       }
     >
       <PrototypeForm submitLabel="Zaloguj się" successTitle="Formularz poprawny" label="Logowanie" className="auth__form">
+        <RolePicker />
         <FormField label="E-mail" name="email" type="email" required autoComplete="email" full />
         <FormField label="Hasło" name="password" type="password" required autoComplete="current-password" full />
         <button type="button" className="auth__forgot" onClick={() => toast('Wersja prototypowa – reset hasła wymaga backendu.')}>
@@ -85,6 +101,7 @@ export function RegisterPage() {
             <input type="radio" name="type" value="business" /> Firma
           </label>
         </fieldset>
+        <RolePicker />
         <FormField label="Imię" name="name" required autoComplete="given-name" full />
         <FormField label="E-mail" name="email" type="email" required autoComplete="email" full />
         <FormField label="Hasło" name="password" type="password" required autoComplete="new-password" minLength={8} hint="Minimum 8 znaków" full />

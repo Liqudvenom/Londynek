@@ -1,0 +1,33 @@
+.lmap { position: relative; width: 100%; height: 100%; min-height: 280px; overflow: hidden; border-radius: var(--radius-lg); border: 1px solid var(--card-border); background: #eef1f4; box-shadow: var(--shadow-sm); view-transition-name: londynek-map; }
+.lmap > .lmap__canvas.maplibregl-map { position: absolute; inset: 0; width: 100%; height: 100%; }
+.lmap .maplibregl-ctrl-group { border-radius: 10px; box-shadow: var(--shadow-sm); border: 1px solid var(--card-border); }
+.lmap .maplibregl-ctrl-group button { width: 34px; height: 34px; }
+.lmap .maplibregl-ctrl-attrib { font-size: 10px; }
+.lmap__note { position: absolute; z-index: 3; left: 50%; top: 10px; transform: translateX(-50%); margin: 0; padding: 4px 10px; border-radius: var(--radius-pill); background: #fff; box-shadow: var(--shadow-sm); font-size: var(--fs-tiny); color: var(--text-secondary); }
+.lmap__preview { position: absolute; z-index: 4; left: 12px; right: 12px; bottom: 12px; display: flex; justify-content: flex-start; pointer-events: none; }
+.lmap__preview > * { pointer-events: auto; }
+.lmap-pulse { width: 22px; height: 22px; border-radius: 50%; pointer-events: none; }
+.lmap-pulse::after { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--pin); animation: lmap-pulse 700ms var(--ease-out) 1 forwards; }
+@keyframes lmap-pulse { from { transform: scale(0.8); opacity: 0.9; } to { transform: scale(2.6); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .lmap-pulse::after { animation: none; display: none; } }
+@media (min-width: 1280px) {
+  .lmap--tilt { transform: perspective(1400px) rotateX(1deg); transform-origin: 50% 100%; }
+}
+
+/* Mini card shown when a pin is clicked */
+.mcard { position: relative; display: grid; grid-template-columns: 84px minmax(0, 1fr) auto; gap: 12px; align-items: center; width: min(100%, 420px); padding: 10px; border-radius: var(--radius-md); background: #fff; border: 1px solid var(--card-border); box-shadow: var(--shadow-lg); animation: mcard-in var(--dur-ui) var(--ease-out); }
+.mcard--noimg { grid-template-columns: minmax(0, 1fr) auto; }
+@keyframes mcard-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.mcard__media { width: 84px; height: 72px; border-radius: var(--radius-sm); overflow: hidden; background: var(--surface-soft); }
+.mcard__media img { width: 100%; height: 100%; object-fit: cover; }
+.mcard__body { display: grid; gap: 2px; min-width: 0; }
+.mcard__kind { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); }
+.mcard__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--pin); }
+.mcard__title { margin: 0; font-family: var(--font-sans); font-size: var(--fs-small); font-weight: 700; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.mcard__title a::after { content: ''; position: absolute; inset: 0; }
+.mcard__meta { font-size: var(--fs-tiny); color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mcard__price { font-weight: 750; font-size: var(--fs-small); }
+.mcard__close { position: relative; z-index: 1; align-self: start; display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 50%; background: var(--surface-soft); color: var(--text-secondary); cursor: pointer; }
+.mcard__private { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-tiny); font-weight: 650; color: #067647; }
+.mcard__actions { position: relative; z-index: 1; display: flex; gap: 10px; margin-top: 4px; font-size: var(--fs-tiny); font-weight: 650; }
+.mcard__actions a { color: var(--blue); }

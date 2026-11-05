@@ -6,10 +6,22 @@ import { SaveButton } from '@/components/ui/SaveButton';
 import { SafetyNotice } from '@/components/ui/RailWidgets';
 import { LondonMap } from '@/components/london/LondonMap';
 import { AdSlot } from '@/components/ads/AdSlot';
-import { resolveListing } from '@/lib/listingDetail';
+import { LocationSection, type LocationContext } from '@/components/location/LocationSection';
+import { resolveListing, type ListingDetail } from '@/lib/listingDetail';
+import { publicPlaceLabel } from '@/lib/location/mapItems';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { PROTOTYPE_MESSAGE, useToast } from '@/context/ToastContext';
 import './detail.css';
+
+const SUBKIND_CONTEXT: Record<string, LocationContext> = { praca: 'job', nieruchomosci: 'housing', uslugi: 'service' };
+
+function locationContext(item: ListingDetail): LocationContext {
+  if (item.kind === 'job') return 'job';
+  if (item.kind === 'property') return 'housing';
+  if (item.kind === 'service') return 'service';
+  if (item.kind === 'business') return 'business';
+  return SUBKIND_CONTEXT[item.subKind ?? ''] ?? 'generic';
+}
 
 export function ListingDetailPage() {
   const { id = '' } = useParams();
@@ -58,8 +70,8 @@ export function ListingDetailPage() {
             <p className="detail__price">{item.priceLabel}</p>
             <p className="meta">
               <span>
-                <MapPin size={14} aria-hidden="true" /> {item.location}
-                {item.postcode && <span className="postcode">{item.postcode}</span>}
+                <MapPin size={14} aria-hidden="true" /> {item.geo ? publicPlaceLabel(item.geo) : item.location}
+                {!item.geo && item.postcode && <span className="postcode">{item.postcode}</span>}
               </span>
               {item.posted && (
                 <span>
@@ -92,16 +104,20 @@ export function ListingDetailPage() {
             {item.description.map((p) => (
               <p key={p}>{p}</p>
             ))}
-            <p className="demo-label">Treść przykładowa (dane demonstracyjne)</p>
+            <p className="demo-label">{item.seed ? 'Wpis demonstracyjny – prawdziwe miejsce, nie klient Londynek.net' : 'Treść przykładowa (dane demonstracyjne)'}</p>
           </section>
 
-          <section className="detail__section" aria-labelledby="where">
-            <h2 id="where">Lokalizacja</h2>
-            <div className="detail__map">
-              <LondonMap label={`Przybliżona lokalizacja: ${item.location}`} markers={[{ id: item.id, ...item.map, label: item.location }]} activeMarker={item.id} showRegionLabels />
-              <p className="meta">Pokazujemy przybliżoną okolicę – dokładny adres przekazuje ogłoszeniodawca.</p>
-            </div>
-          </section>
+          {item.geo ? (
+            <LocationSection id={item.id} geo={item.geo} name={item.title} context={locationContext(item)} />
+          ) : (
+            <section className="detail__section" aria-labelledby="where">
+              <h2 id="where">Lokalizacja</h2>
+              <div className="detail__map">
+                <LondonMap label={`Obszar: ${item.location}`} markers={[{ id: item.id, ...item.map, label: item.location }]} activeMarker={item.id} showRegionLabels />
+                <p className="meta">To ogłoszenie dotyczy obszaru „{item.location}” i nie ma jednego adresu.</p>
+              </div>
+            </section>
+          )}
         </div>
 
         <aside className="detail__aside" aria-label="Kontakt z ogłoszeniodawcą">

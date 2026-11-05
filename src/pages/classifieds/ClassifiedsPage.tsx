@@ -9,7 +9,8 @@ import { EmptyState, Pagination, SortSelect, ViewToggle, type ViewMode } from '@
 import { FilterSidebar, MobileFilters, type FilterField } from '@/components/filters/FilterSidebar';
 import { arr, str, useFilters } from '@/hooks/useFilters';
 import { ListingCard } from '@/components/cards/ListingCards';
-import { LondonMap } from '@/components/london/LondonMap';
+import { LazyListingMap, MapItemCard } from '@/components/location/MapParts';
+import { mapItemById, type MapItem } from '@/lib/location/mapItems';
 import { AddListingCta, MapPreview, SafetyNotice } from '@/components/ui/RailWidgets';
 import { CLASSIFIEDS, CLASSIFIED_CATEGORIES } from '@/data/classifieds';
 import { REGIONS } from '@/data/districts';
@@ -83,6 +84,7 @@ export function ClassifiedsPage() {
   const [view, setView] = useState<ViewMode>('list');
   const [page, setPage] = useState(1);
   const [hovered, setHovered] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
 
   const results = useMemo(() => {
     const list = applyFilters(CLASSIFIEDS, filters.values, query, seller);
@@ -98,6 +100,8 @@ export function ClassifiedsPage() {
   const current = Math.min(page, pages);
   const visible = view === 'map' ? results : results.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
   const markers = results.map((l) => ({ id: l.id, ...coordsFor(l.location, l.region), label: l.title, tone: 'red' as const }));
+  const mapPoints = useMemo(() => results.map((l) => mapItemById(l.id)).filter((m): m is MapItem => !!m), [results]);
+  const selectedItem = selected ? (mapPoints.find((m) => m.id === selected) ?? null) : null;
   const counts = { all: CLASSIFIEDS.length, private: CLASSIFIEDS.filter((l) => l.seller === 'private').length, business: CLASSIFIEDS.filter((l) => l.seller === 'business').length };
 
   const changeFilter = (id: string, v: string | string[]) => {
@@ -192,16 +196,28 @@ export function ClassifiedsPage() {
               </EmptyState>
             )}
             {view === 'map' && results.length > 0 && (
-              <div className="map-view">
-                <LondonMap label="Mapa ogłoszeń" markers={markers} activeMarker={hovered} onMarkerEnter={setHovered} onMarkerSelect={setHovered} />
-                <ul className="map-view__list">
+              <div className="cmap">
+                <div className="cmap__list">
                   {visible.map((l) => (
-                    <li key={l.id} onMouseEnter={() => setHovered(l.id)} className={hovered === l.id ? 'is-active' : ''}>
-                      <Link to={`/ogloszenie/${l.id}`}>{l.title}</Link>
-                      <span className="price">{l.priceLabel}</span>
-                    </li>
+                    <ListingCard key={l.id} listing={l} layout="grid" hideMap highlighted={hovered === l.id || selected === l.id} onHover={setHovered} />
                   ))}
-                </ul>
+                </div>
+                <div className="cmap__map">
+                  <LazyListingMap
+                    items={mapPoints}
+                    hoveredId={hovered}
+                    selectedId={selected}
+                    onHover={setHovered}
+                    onSelect={setSelected}
+                    preview={selectedItem ? <MapItemCard item={selectedItem} onClose={() => setSelected(null)} /> : null}
+                    ariaLabel="Mapa ogłoszeń. Lista obok zawiera te same ogłoszenia."
+                  />
+                  {results.length > mapPoints.length && (
+                    <p className="cmap__note">
+                      {results.length - mapPoints.length} {plural(results.length - mapPoints.length, 'ogłoszenie dotyczy', 'ogłoszenia dotyczą', 'ogłoszeń dotyczy')} całego Londynu i nie ma punktu na mapie.
+                    </p>
+                  )}
+                </div>
               </div>
             )}
             {view !== 'map' && (

@@ -1,10 +1,10 @@
-import { lazy, Suspense, useCallback, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useState } from 'react';
 import { Activity, Layers, MapPin } from 'lucide-react';
 import { TUBE_LINE_IDS } from '@/data/tube-colors';
 import { Sheet } from '@/components/ui/Sheet';
 import { useMediaQuery, usePrefersReducedMotion } from '@/hooks';
 import type { LiveState, NetworkState } from '@/hooks/useTransport';
-import type { LineStatus, TrainPrediction, TrainSighting } from '@/lib/tfl/types';
+import type { Journey, LineStatus, TrainPrediction, TrainSighting } from '@/lib/tfl/types';
 import { StationPanel } from './Arrivals';
 import { LineFilterPanel } from './LineFilterPanel';
 import { DisruptionStrip, StatusOverlay } from './LineStatus';
@@ -14,7 +14,7 @@ import { LiveDataIndicator, TransportError } from './TransportChrome';
 const GeoTubeMap = lazy(() => import('./GeoTubeMap'));
 const LedTubeMap = lazy(() => import('./LedTubeMap'));
 
-export type MapMode = 'geo' | 'led';
+export type MapMode = 'geo' | 'schematic';
 
 /** Shared explorer state: visible lines, isolated line, selected/hovered station, camera requests. */
 export function useTubeExplorerState(initial: { focusLine?: string | null; station?: string | null } = {}) {
@@ -73,21 +73,16 @@ interface Props {
   onTimetable: (stationId: string) => void;
   /** Hide the left lines panel (line page uses its own context) */
   compact?: boolean;
+  journey?: Journey | null;
 }
 
-export function TubeExplorer({ net, explorer, status, vehicles, arrivals, onShowBoard, onTimetable, compact }: Props) {
+export function TubeExplorer({ net, explorer, status, vehicles, arrivals, onShowBoard, onTimetable, compact, journey }: Props) {
   const [mode, setMode] = useState<MapMode>('geo');
   const [sheet, setSheet] = useState<'lines' | 'station' | 'status' | null>(null);
   const reducedMotion = usePrefersReducedMotion();
   const mobile = useMediaQuery('(max-width: 899px)');
   const { network, index } = net;
   const station = network && explorer.selectedStationId ? network.stations[explorer.selectedStationId] ?? null : null;
-
-  const trainCounts = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const v of vehicles.data ?? []) m.set(v.lineId, (m.get(v.lineId) ?? 0) + 1);
-    return m;
-  }, [vehicles.data]);
 
   const select = (id: string) => {
     explorer.selectStation(id);
@@ -108,7 +103,6 @@ export function TubeExplorer({ net, explorer, status, vehicles, arrivals, onShow
       statuses={status.data}
       visibleLines={explorer.visible}
       focusLineId={explorer.focusLineId}
-      trainCounts={trainCounts}
       onToggle={explorer.toggleLine}
       onShowAll={explorer.showAll}
       onHideAll={explorer.hideAll}
@@ -131,7 +125,7 @@ export function TubeExplorer({ net, explorer, status, vehicles, arrivals, onShow
   const MapCmp = mode === 'geo' ? GeoTubeMap : LedTubeMap;
 
   return (
-    <div className={`texplorer${compact ? ' texplorer--compact' : ''}${station ? ' has-station' : ''}`}>
+    <div className={`texplorer${compact ? ' texplorer--compact' : ''}${station ? ' has-station' : ''}${mode === 'schematic' ? ' texplorer--wide' : ''}`}>
       {!compact && !mobile && <aside className="texplorer__lines">{panel}</aside>}
 
       <div className={`texplorer__map is-${mode}`}>
@@ -139,8 +133,8 @@ export function TubeExplorer({ net, explorer, status, vehicles, arrivals, onShow
           <button type="button" aria-pressed={mode === 'geo'} onClick={() => setMode('geo')}>
             Mapa Londynu
           </button>
-          <button type="button" aria-pressed={mode === 'led'} onClick={() => setMode('led')}>
-            Mapa LED
+          <button type="button" aria-pressed={mode === 'schematic'} onClick={() => setMode('schematic')}>
+            Schemat metra
           </button>
         </div>
         {!mobile && <StatusOverlay statuses={status.data} fetchedAt={status.meta?.fetchedAt ?? null} />}
@@ -157,9 +151,11 @@ export function TubeExplorer({ net, explorer, status, vehicles, arrivals, onShow
               hoveredStationId={explorer.hoveredStationId}
               onSelectStation={select}
               onHoverStation={explorer.hoverStation}
+              onFocusLine={explorer.focusLine}
               sightings={vehicles.data}
               reducedMotion={reducedMotion}
               focusRequest={explorer.focusRequest}
+              journey={journey}
             />
           </Suspense>
         ) : net.error ? (
@@ -184,7 +180,7 @@ export function TubeExplorer({ net, explorer, status, vehicles, arrivals, onShow
 
         <div className="tmap-foot">
           <LiveDataIndicator meta={vehicles.meta} error={vehicles.error} loading={vehicles.loading} onRetry={vehicles.refresh} />
-          <p className="tmap-disclaimer">Pociągi: wizualne oszacowanie pozycji na podstawie prognoz TfL – nie GPS.</p>
+          <p className="tmap-disclaimer">Pulsowanie linii na schemacie jest poglądowe – nie pozycja GPS pociągów.</p>
         </div>
 
         {mobile && (

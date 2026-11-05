@@ -12,7 +12,7 @@ import './header.css';
 
 const MEGA_ID = 'mega-menu';
 /** Also reachable via "Więcej"; dropped from the bar on narrow desktops so the header never overflows. */
-const SECONDARY_NAV = ['/ciekawostki', '/ogloszenia/uslugi'];
+const SECONDARY_NAV = ['/ogloszenia/uslugi'];
 
 export function EnglishVersionButton({ compact = false }: { compact?: boolean }) {
   const notify = useToast();

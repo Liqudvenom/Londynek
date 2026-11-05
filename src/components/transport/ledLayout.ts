@@ -23,7 +23,8 @@ const CELLS_PER_UNIT = 4.2;
 const FISHEYE_KM = 7;
 const BUNDLE_GAP = 0.3;
 
-function schematic(lat: number, lon: number): Pt {
+/** Project a London point onto the octilinear schematic. */
+export function schematic(lat: number, lon: number): Pt {
   const x = (lon - CENTRE.lon) * 69.3;
   const y = -(lat - CENTRE.lat) * 111.2;
   const r = Math.hypot(x, y);

@@ -97,3 +97,37 @@ export interface RawStopPoint {
   additionalProperties?: { category: string; key: string; value: string }[];
   children?: RawStopPoint[];
 }
+
+/** /Journey/JourneyResults/{from}/to/{to} – only the fields we use. */
+export interface RawJourneyPoint {
+  commonName?: string;
+  naptanId?: string;
+  lat?: number;
+  lon?: number;
+}
+
+export interface RawJourneyLeg {
+  duration: number;
+  departureTime: string;
+  arrivalTime: string;
+  distance?: number;
+  isDisrupted?: boolean;
+  instruction?: { summary?: string; detailed?: string };
+  departurePoint?: RawJourneyPoint;
+  arrivalPoint?: RawJourneyPoint;
+  mode?: { id: string; name?: string };
+  routeOptions?: { name?: string; directions?: string[]; lineIdentifier?: { id: string; name?: string } }[];
+  path?: { lineString?: string; stopPoints?: { id?: string; name?: string }[] };
+}
+
+export interface RawJourney {
+  startDateTime: string;
+  arrivalDateTime: string;
+  duration: number;
+  legs: RawJourneyLeg[];
+  fare?: { totalCost?: number };
+}
+
+export interface RawJourneyResponse {
+  journeys?: RawJourney[];
+}

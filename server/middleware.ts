@@ -1,9 +1,10 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createFormsHandler, type FormsEnv } from './forms';
+import { createGeocoder, type GeocodeEnv } from './geocode';
 import { createTflClient } from './tfl-client';
 import { createTransportApi } from './transport-api';
 
-export interface ServerEnv extends FormsEnv {
+export interface ServerEnv extends FormsEnv, GeocodeEnv {
   TFL_APP_ID?: string;
   TFL_APP_KEY?: string;
 }
@@ -45,6 +46,7 @@ export function createApiMiddleware(env: ServerEnv) {
   const tfl = createTflClient({ appId: env.TFL_APP_ID || undefined, appKey: env.TFL_APP_KEY || undefined });
   const transport = createTransportApi(tfl);
   const forms = createFormsHandler(env);
+  const geocoder = createGeocoder(env);
 
   return async function apiMiddleware(req: IncomingMessage, res: ServerResponse, next: Next) {
     const url = new URL(req.url ?? '/', 'http://localhost');
@@ -65,6 +67,14 @@ export function createApiMiddleware(env: ServerEnv) {
     }
 
     if (req.method !== 'GET') return send(res, 405, { error: { kind: 'bad-request', message: 'Metoda niedozwolona.' } }, { Allow: 'GET' });
+    if (url.pathname === '/api/location/search') {
+      const out = await geocoder.search(url.searchParams.get('q') ?? '');
+      return send(res, out.status, out.body);
+    }
+    if (url.pathname === '/api/location/reverse') {
+      const out = await geocoder.reverse(url.searchParams.get('lat'), url.searchParams.get('lng'));
+      return send(res, out.status, out.body);
+    }
     if (!url.pathname.startsWith('/api/transport/')) return send(res, 404, { error: { kind: 'not-found', message: 'Nieznany adres API.' } });
     const out = await transport(url);
     send(res, out.status, out.body);

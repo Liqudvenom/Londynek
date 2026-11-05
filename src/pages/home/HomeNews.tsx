@@ -1,5 +1,6 @@
 import { SectionHeader } from '@/components/ui/primitives';
 import { NewsCard, NewsCompactItem, NewsLead } from '@/components/cards/EditorialCards';
+import { ShortsRail } from '@/components/social/ShortsRail';
 import { AdSlot } from '@/components/ads/AdSlot';
 import { NEWS } from '@/data/articles';
 import { AD_CREATIVES } from '@/data/misc';
@@ -12,6 +13,7 @@ export function HomeNews() {
   return (
     <section className="container section" aria-labelledby="home-news">
       <SectionHeader title="Ważne wiadomości" id="home-news" accent="news" action={{ label: 'Wszystkie wiadomości', to: '/wiadomosci' }} />
+      <ShortsRail compact />
       <div className="home-news">
         <div className="home-news__lead">
           <NewsLead article={lead} />

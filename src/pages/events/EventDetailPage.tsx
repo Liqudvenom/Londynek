@@ -5,6 +5,7 @@ import { SaveButton } from '@/components/ui/SaveButton';
 import { Breadcrumbs, EmptyState } from '@/components/ui/primitives';
 import { DateBlock, EventCard } from '@/components/cards/LocalCards';
 import { LondonMap } from '@/components/london/LondonMap';
+import { LocationSection } from '@/components/location/LocationSection';
 import { AdSlot } from '@/components/ads/AdSlot';
 import { EVENTS, eventById } from '@/data/events';
 import { formatRange } from '@/lib/format';
@@ -27,7 +28,7 @@ function downloadIcs(e: EventItem) {
     `DTSTART;TZID=Europe/London:${day}T${h}${m}00`,
     `DTEND;TZID=Europe/London:${endDay}T${String(Math.min(23, Number(h) + 2)).padStart(2, '0')}${m}00`,
     `SUMMARY:${e.title}`,
-    `LOCATION:${e.venue}, ${e.borough}, London`,
+    `LOCATION:${e.venue}, ${e.geo?.address ? `${e.geo.address}, ${e.geo.postcode}` : e.borough}, London`,
     `DESCRIPTION:${e.description}`,
     'END:VEVENT',
     'END:VCALENDAR',
@@ -96,7 +97,8 @@ export function EventDetailPage() {
                 <MapPin size={18} aria-hidden="true" /> Gdzie
               </dt>
               <dd>
-                {event.venue}, {event.borough}
+                {event.venue}
+                {event.geo?.address ? `, ${event.geo.address}, ${event.geo.postcode}` : `, ${event.borough}`}
               </dd>
             </div>
             <div>
@@ -112,14 +114,18 @@ export function EventDetailPage() {
             <p>Szczegółowy program, informacje o dostępności dla osób z niepełnosprawnościami i zasady wejścia podaje organizator. Wydarzenie {event.polish ? 'prowadzone w języku polskim' : 'w języku angielskim'}.</p>
             <p className="demo-label">Opis przykładowy – dane demonstracyjne</p>
           </section>
-          <section aria-labelledby="where">
-            <h2 id="where" className="event-detail__h2">
-              Dojazd
-            </h2>
-            <div className="event-detail__map">
-              <LondonMap label={`Lokalizacja: ${event.venue}`} markers={[{ id: event.id, ...event.map, label: event.venue, tone: 'magenta' }]} activeMarker={event.id} showRegionLabels />
-            </div>
-          </section>
+          {event.geo ? (
+            <LocationSection id={event.id} geo={event.geo} name={event.venue} context="event" />
+          ) : (
+            <section aria-labelledby="where">
+              <h2 id="where" className="event-detail__h2">
+                Dojazd
+              </h2>
+              <div className="event-detail__map">
+                <LondonMap label={`Lokalizacja: ${event.venue}`} markers={[{ id: event.id, ...event.map, label: event.venue, tone: 'magenta' }]} activeMarker={event.id} showRegionLabels />
+              </div>
+            </section>
+          )}
         </div>
 
         <aside className="event-detail__aside" aria-label="Bilety i zapis">

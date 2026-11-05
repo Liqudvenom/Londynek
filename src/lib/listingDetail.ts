@@ -3,11 +3,13 @@ import { PROPERTIES, PROPERTY_TYPE_LABEL, propertyById } from '@/data/properties
 import { CANDIDATES, CONTRACT_LABEL, ENGLISH_LABEL, JOBS, SCHEDULE_LABEL, candidateById, jobById } from '@/data/jobs';
 import { SERVICES, serviceById } from '@/data/services';
 import { VEHICLES, vehicleById } from '@/data/vehicles';
+import { BUSINESSES, BUSINESS_CATEGORY_LABEL, businessById } from '@/data/businesses';
 import { districtById } from '@/data/districts';
 import { coordsFor } from '@/lib/geo';
 import { formatGBP, formatNumber } from '@/lib/format';
+import { mapPoint } from '@/lib/mapProjection';
 import type { ImageName } from '@/data/images.generated';
-import type { Accent, RegionId } from '@/types';
+import type { Accent, GeoLocation, RegionId } from '@/types';
 
 export interface RelatedItem {
   id: string;
@@ -18,8 +20,13 @@ export interface RelatedItem {
 
 export interface ListingDetail {
   id: string;
-  kind: 'classified' | 'property' | 'job' | 'candidate' | 'service' | 'vehicle';
+  kind: 'classified' | 'property' | 'job' | 'candidate' | 'service' | 'vehicle' | 'business';
+  /** Classified sub-type, e.g. 'nieruchomosci' – picks the location heading */
+  subKind?: string;
   title: string;
+  geo?: GeoLocation;
+  /** Seed entry about a real place */
+  seed?: boolean;
   category: { label: string; to: string };
   accent: Accent;
   image: ImageName | null;
@@ -46,7 +53,9 @@ function fromClassified(id: string): ListingDetail | null {
   return {
     id,
     kind: 'classified',
+    subKind: l.category,
     title: l.title,
+    geo: l.geo,
     category: { label: meta.label, to: meta.to },
     accent: CATEGORY_ACCENT[l.category],
     image: l.image,
@@ -81,6 +90,7 @@ function fromProperty(id: string): ListingDetail | null {
     id,
     kind: 'property',
     title: p.title,
+    geo: p.geo,
     category: { label: 'Nieruchomości', to: '/ogloszenia/nieruchomosci' },
     accent: 'housing',
     image: p.image,
@@ -93,7 +103,6 @@ function fromProperty(id: string): ListingDetail | null {
       ['Typ', PROPERTY_TYPE_LABEL[p.type]],
       ['Sypialnie', p.bedrooms === 0 ? 'Studio' : String(p.bedrooms)],
       ['Łazienki', String(p.bathrooms)],
-      ['Dojazd do centrum', `${p.commuteMin} min`],
       ['Zdjęcia', String(p.photos)],
     ],
     tags: [p.verified ? 'Sprawdzony wynajmujący' : 'Niezweryfikowany', ...(p.isNew ? ['Nowe ogłoszenie'] : [])],
@@ -114,6 +123,7 @@ function fromJob(id: string): ListingDetail | null {
     id,
     kind: 'job',
     title: j.title,
+    geo: j.geo,
     category: { label: 'Praca', to: '/ogloszenia/praca' },
     accent: 'jobs',
     image: null,
@@ -181,6 +191,7 @@ function fromService(id: string): ListingDetail | null {
     id,
     kind: 'service',
     title: s.name,
+    geo: s.geo,
     category: { label: 'Usługi', to: `/ogloszenia/uslugi?kategoria=${encodeURIComponent(s.category)}` },
     accent: 'services',
     image: s.image,
@@ -212,6 +223,7 @@ function fromVehicle(id: string): ListingDetail | null {
     id,
     kind: 'vehicle',
     title: v.title,
+    geo: v.geo,
     category: { label: 'Motoryzacja', to: '/ogloszenia/motoryzacja' },
     accent: 'navy',
     image: v.image,
@@ -238,7 +250,43 @@ function fromVehicle(id: string): ListingDetail | null {
   };
 }
 
-const RESOLVERS = [fromClassified, fromProperty, fromJob, fromCandidate, fromService, fromVehicle];
+function fromBusiness(id: string): ListingDetail | null {
+  const b = businessById(id);
+  if (!b) return null;
+  const category = BUSINESS_CATEGORY_LABEL[b.category];
+  return {
+    id,
+    kind: 'business',
+    title: b.name,
+    geo: b.geo,
+    seed: true,
+    category: { label: 'Polskie firmy', to: '/polskie-firmy' },
+    accent: 'services',
+    image: null,
+    priceLabel: category,
+    location: `${b.geo.district}, ${b.geo.borough}`,
+    postcode: b.geo.postcode,
+    map: mapPoint(b.geo.lat, b.geo.lng),
+    facts: [
+      ['Adres', `${b.geo.address}, London ${b.geo.postcode}`],
+      ['Dzielnica', `${b.geo.district} (${b.geo.borough})`],
+      ['Kategoria', category],
+    ],
+    tags: ['Wpis demonstracyjny'],
+    description: [
+      `${b.name} – publicznie dostępny adres w dzielnicy ${b.geo.district}. Wpis służy wyłącznie do pokazania katalogu firm, mapy i planowania dojazdu.`,
+      'Nie jest to reklama ani partner Londynek.net. Godzin otwarcia i opinii nie podajemy, bo nie mamy zweryfikowanych danych.',
+    ],
+    seller: { name: b.name, kind: 'Firma (dane demonstracyjne)', verified: false },
+    promoted: false,
+    contactLabel: 'Zapytaj o wpis',
+    related: BUSINESSES.filter((x) => x.id !== id && x.category === b.category)
+      .slice(0, 4)
+      .map((x) => ({ id: x.id, title: x.name, priceLabel: BUSINESS_CATEGORY_LABEL[x.category], image: null })),
+  };
+}
+
+const RESOLVERS = [fromClassified, fromProperty, fromJob, fromCandidate, fromService, fromVehicle, fromBusiness];
 
 export function resolveListing(id: string): ListingDetail | null {
   for (const resolve of RESOLVERS) {

@@ -106,7 +106,7 @@ export async function searchContent(q: string, scope: SearchScope = 'all', locat
   }
 }
 
-export type FormKind = 'contact' | 'advertising' | 'listing';
+export type FormKind = 'contact' | 'advertising' | 'listing' | 'partner';
 
 export type FormResult = { ok: true; id: string } | { ok: false; message: string; fields?: string[] };
 

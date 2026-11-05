@@ -163,6 +163,57 @@ export interface Timetable {
   schedules: TimetableSchedule[];
 }
 
+/** Compact station list for nearest-station lookups (GET /api/transport/tube/stations). */
+export interface StationLite {
+  id: string;
+  name: string;
+  lat: number;
+  lon: number;
+  lines: string[];
+  zone: string | null;
+}
+
+export interface JourneyStop {
+  name: string;
+  lat: number | null;
+  lng: number | null;
+  stationId: string | null;
+}
+
+export interface JourneyLeg {
+  /** TfL mode id: walking, tube, dlr, elizabeth-line, overground, bus, national-rail… */
+  mode: string;
+  lineId: string | null;
+  lineName: string | null;
+  colour: string;
+  from: JourneyStop;
+  to: JourneyStop;
+  departure: string;
+  arrival: string;
+  durationMin: number;
+  summary: string;
+  /** "towards Stratford" when TfL provides it */
+  direction: string | null;
+  /** Number of intermediate stops ridden (0 for walking legs) */
+  stopCount: number;
+  /** [lng, lat] polyline from TfL */
+  path: [number, number][];
+  distanceM: number | null;
+  disrupted: boolean;
+}
+
+export interface Journey {
+  id: string;
+  departure: string;
+  arrival: string;
+  durationMin: number;
+  walkMin: number;
+  transfers: number;
+  legs: JourneyLeg[];
+  /** Pay-as-you-go fare in pence if TfL returned one */
+  farePence: number | null;
+}
+
 export interface ApiMeta {
   fetchedAt: string;
   /** Data served from cache after an upstream failure */

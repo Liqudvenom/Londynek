@@ -3,9 +3,11 @@ import type {
   ApiEnvelope,
   ApiErrorKind,
   ApiMeta,
+  Journey,
   LineRoute,
   LineStatus,
   StationDetail,
+  StationLite,
   StationSearchResult,
   Timetable,
   TrainPrediction,
@@ -69,7 +71,23 @@ export const transportApi = {
   searchStations: (term: string, signal?: AbortSignal) => get<StationSearchResult[]>(`/api/transport/stations/search${q({ q: term })}`, signal),
   timetable: (lineId: string, from: string, to: string, signal?: AbortSignal) =>
     get<Timetable>(`/api/transport/tube/timetable/${encodeURIComponent(lineId)}${q({ from, to })}`, signal),
+  stations: (signal?: AbortSignal) => get<StationLite[]>('/api/transport/tube/stations', signal),
+  journey: (p: { from: string; to: string; time?: string; date?: string; timeIs?: 'departing' | 'arriving' }, signal?: AbortSignal) =>
+    get<Journey[]>(`/api/transport/journey${q(p)}`, signal),
 };
+
+let stationsPromise: Promise<StationLite[]> | null = null;
+/** Compact station list (≈270 rows) – shared by every nearest-station lookup in the session. */
+export function loadStations() {
+  stationsPromise ??= transportApi
+    .stations()
+    .then((r) => r.data)
+    .catch((err) => {
+      stationsPromise = null;
+      throw err;
+    });
+  return stationsPromise;
+}
 
 export type { ApiMeta };
 

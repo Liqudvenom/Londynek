@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Minus, Plus, Maximize2 } from 'lucide-react';
 import { tubeLineColours, isTubeLineId } from '@/data/tube-colors';
-import { alongPolyline, buildLedLayout, type Pt } from './ledLayout';
-import { TrainTooltip, type HoverTrain, type TubeMapProps } from './mapShared';
-import { TrainAnimator, type AnimatedTrain } from './trainAnimator';
+import { buildLedLayout, type Pt } from './ledLayout';
+import { type TubeMapProps } from './mapShared';
 
 interface View {
   s: number;
@@ -15,14 +14,61 @@ const MIN_SCALE = 2.5;
 const MAX_SCALE = 60;
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
-const ledColour = (id: string) => (isTubeLineId(id) ? tubeLineColours[id] : { colour: '#EDF5FF', glow: '#EDF5FF', name: id, ink: '#000' });
+const ledColour = (id: string) => (isTubeLineId(id) ? tubeLineColours[id] : { colour: '#667085', glow: '#667085', name: id, ink: '#101828' });
+
+function polyLen(run: Pt[]) {
+  let n = 0;
+  for (let i = 1; i < run.length; i++) n += Math.hypot(run[i]![0] - run[i - 1]![0], run[i]![1] - run[i - 1]![1]);
+  return n;
+}
+
+function seed(s: string) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
+  return h >>> 0;
+}
+
+/** CodePen ZeEpgd: easeInOutSine, alternate draw ↔ undraw. */
+function dashProgress(now: number, delay: number, dur: number) {
+  const t = now - delay;
+  if (t < 0) return 0;
+  const u = (t % (dur * 2)) / dur;
+  const x = u <= 1 ? u : 2 - u;
+  return 0.5 - 0.5 * Math.cos(Math.PI * x);
+}
+
+function distToRun(px: number, py: number, run: Pt[]) {
+  let best = Infinity;
+  for (let i = 1; i < run.length; i++) {
+    const ax = run[i - 1]![0];
+    const ay = run[i - 1]![1];
+    const bx = run[i]![0];
+    const by = run[i]![1];
+    const dx = bx - ax;
+    const dy = by - ay;
+    const l2 = dx * dx + dy * dy || 1;
+    const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / l2));
+    const d = Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+    if (d < best) best = d;
+  }
+  return best;
+}
+
+interface RunPath {
+  id: string;
+  path: Path2D;
+  pts: Pt[];
+  len: number;
+  delay: number;
+  dur: number;
+}
 
 /**
- * "Mapa LED": a schematic board drawn on canvas. Static geometry is rebuilt only when the network
- * changes; each frame redraws strokes (cheap) plus the animated chase and estimated train positions.
+ * TfL-style schematic: octilinear lines, official colours, CodePen dash pulse.
+ * Geometry is rebuilt only when the network changes.
  */
 export default function LedTubeMap(props: TubeMapProps) {
-  const { network, sightings, reducedMotion, focusRequest } = props;
+  const { network, focusRequest } = props;
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const view = useRef<View>({ s: 8, tx: 0, ty: 0 });
@@ -30,38 +76,26 @@ export default function LedTubeMap(props: TubeMapProps) {
   const size = useRef({ w: 0, h: 0 });
   const propsRef = useRef(props);
   propsRef.current = props;
-  const framePositions = useRef<{ t: AnimatedTrain; x: number; y: number }[]>([]);
-  const [hover, setHover] = useState<HoverTrain | null>(null);
+  const hoverLine = useRef<string | null>(null);
 
   const layout = useMemo(() => buildLedLayout(network), [network]);
   const paths = useMemo(() => {
-    const m = new Map<string, Path2D>();
-    for (const [id, runs] of layout.lines) {
-      const p = new Path2D();
-      for (const run of runs) run.forEach(([x, y], i) => (i ? p.lineTo(x, y) : p.moveTo(x, y)));
-      m.set(id, p);
+    const runs: RunPath[] = [];
+    for (const [id, lineRuns] of layout.lines) {
+      lineRuns.forEach((pts, i) => {
+        if (pts.length < 2) return;
+        const path = new Path2D();
+        pts.forEach(([x, y], j) => (j ? path.lineTo(x, y) : path.moveTo(x, y)));
+        const n = seed(`${id}:${i}`);
+        runs.push({ id, path, pts, len: Math.max(polyLen(pts), 0.01), delay: n % 2000, dur: 1000 + (n % 2000) });
+      });
     }
     const thames = new Path2D();
     for (const run of layout.thames) run.forEach(([x, y], i) => (i ? thames.lineTo(x, y) : thames.moveTo(x, y)));
-    return { lines: m, thames };
+    return { runs, thames };
   }, [layout]);
 
-  const animator = useMemo(
-    () =>
-      new TrainAnimator(
-        (id) => layout.stations.get(id) ?? null,
-        (s, fromId, p) => {
-          const edge = layout.edges.get(`${s.lineId}:${fromId}>${s.toStationId}`);
-          return edge ? alongPolyline(edge, p) : null;
-        },
-      ),
-    [layout],
-  );
-  useEffect(() => {
-    if (sightings) animator.update(sightings, reducedMotion);
-  }, [animator, sightings, reducedMotion]);
-
-  const fitView = (bounds = layout.bounds, pad = 24): View => {
+  const fitView = (bounds = layout.bounds, pad = 20): View => {
     const { w, h } = size.current;
     const bw = bounds.maxX - bounds.minX;
     const bh = bounds.maxY - bounds.minY;
@@ -145,145 +179,125 @@ export default function LedTubeMap(props: TubeMapProps) {
       const { w, h } = size.current;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, w, h);
-      const k = clamp(s / 9, 0.75, 1.7);
+      const k = clamp(s / 8.5, 0.85, 1.55);
 
-      // Layout-space strokes
       ctx.setTransform(dpr * s, 0, 0, dpr * s, dpr * tx, dpr * ty);
       ctx.lineJoin = 'round';
       ctx.lineCap = 'round';
-      const b = layout.bounds;
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(b.minX, b.minY, b.maxX - b.minX, b.maxY - b.minY);
-      ctx.clip();
-      ctx.strokeStyle = '#0C2540';
-      ctx.globalAlpha = 0.5;
-      ctx.lineWidth = Math.max(6, 0.9 * s) / s;
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = '#c8d8e4';
+      ctx.lineWidth = 11 / s;
       ctx.stroke(paths.thames);
-      ctx.strokeStyle = '#123A5E';
-      ctx.lineWidth = Math.max(2.5, 0.4 * s) / s;
+      ctx.strokeStyle = '#e7eef3';
+      ctx.lineWidth = 7 / s;
       ctx.stroke(paths.thames);
-      ctx.restore();
 
-      for (const line of network.lines) {
-        if (!vis.has(line.id)) continue;
-        const path = paths.lines.get(line.id);
-        if (!path) continue;
-        const c = ledColour(line.id);
-        const alpha = focus && focus !== line.id ? 0.1 : 1;
-        ctx.globalAlpha = alpha * 0.16;
-        ctx.strokeStyle = c.glow;
-        ctx.lineWidth = (10 * k) / s;
-        ctx.stroke(path);
-        ctx.globalAlpha = alpha;
-        ctx.strokeStyle = line.id === 'northern' ? '#1A1E26' : c.colour;
-        ctx.lineWidth = (3.8 * k) / s;
-        ctx.stroke(path);
-        ctx.globalAlpha = alpha * 0.75;
-        ctx.strokeStyle = c.glow;
-        ctx.lineWidth = (1.1 * k) / s;
-        ctx.stroke(path);
-        if (!rm && alpha === 1) {
-          ctx.setLineDash([3 / s, 26 / s]);
-          ctx.lineDashOffset = -((time * 0.02) % 29) / s;
-          ctx.globalAlpha = 0.55;
-          ctx.strokeStyle = '#FFFFFF';
-          ctx.lineWidth = (1.8 * k) / s;
-          ctx.stroke(path);
-          ctx.setLineDash([]);
-        }
+      const hoverId = hoverLine.current;
+      const casing = 7.4 / s;
+      const width = 4.8 / s;
+      for (const run of paths.runs) {
+        if (!vis.has(run.id)) continue;
+        const dim = (focus && focus !== run.id) || (hoverId && hoverId !== run.id);
+        const hold = rm || focus === run.id || hoverId === run.id;
+        const p = hold ? 1 : dashProgress(time, run.delay, run.dur);
+        const colour = ledColour(run.id).colour;
+        ctx.strokeStyle = colour;
+        ctx.lineWidth = width;
+        ctx.globalAlpha = dim ? 0.16 : 0.4;
+        ctx.stroke(run.path);
+        ctx.setLineDash([run.len * p, run.len]);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = casing;
+        ctx.globalAlpha = dim ? 0.28 : 1;
+        ctx.stroke(run.path);
+        ctx.strokeStyle = colour;
+        ctx.lineWidth = width;
+        ctx.globalAlpha = dim ? 0.28 : 1;
+        ctx.stroke(run.path);
+        ctx.setLineDash([]);
       }
 
-      // Screen-space nodes, labels and trains
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const labels: [number, number, number, number][] = [];
-      const showAll = s >= 20;
-      const showMajor = s >= 7;
-      ctx.font = `600 ${Math.round(9 * Math.min(k, 1.25))}px ui-monospace, SFMono-Regular, Consolas, monospace`;
-      for (const st of Object.values(network.stations)) {
-        if (!st.lines.some((l) => vis.has(l))) continue;
+      const showAll = s >= 11;
+      const showMany = s >= 6.4;
+      const fs = Math.round(12 * Math.min(k, 1.18));
+      ctx.font = `650 ${fs}px "Gill Sans", "Johnston", "Segoe UI", sans-serif`;
+      ctx.textBaseline = 'middle';
+      const listed = Object.values(network.stations)
+        .filter((st) => st.lines.some((l) => vis.has(l)))
+        .sort((a, b) => Number(b.interchange) - Number(a.interchange) || a.name.length - b.name.length);
+
+      for (const st of listed) {
         const lp = layout.stations.get(st.id);
         if (!lp) continue;
         const [x, y] = toScreen(lp);
-        if (x < -30 || y < -30 || x > w + 30 || y > h + 30) continue;
-        const dim = focus && !st.lines.includes(focus);
-        ctx.globalAlpha = dim ? 0.18 : 1;
+        if (x < -36 || y < -36 || x > w + 36 || y > h + 36) continue;
+        const dim = Boolean(focus && !st.lines.includes(focus));
+        ctx.globalAlpha = dim ? 0.28 : 1;
         if (st.interchange) {
-          ctx.fillStyle = '#070A10';
-          ctx.strokeStyle = '#EDF5FF';
-          ctx.lineWidth = 1.6;
+          ctx.fillStyle = '#fff';
+          ctx.strokeStyle = '#101828';
+          ctx.lineWidth = 2.1;
           ctx.beginPath();
-          ctx.arc(x, y, 5.4 * k, 0, Math.PI * 2);
+          ctx.arc(x, y, 6.1 * k, 0, Math.PI * 2);
           ctx.fill();
           ctx.stroke();
-          ctx.lineWidth = 1.3;
           ctx.beginPath();
-          ctx.arc(x, y, 2.5 * k, 0, Math.PI * 2);
-          ctx.stroke();
+          ctx.arc(x, y, 2.15 * k, 0, Math.PI * 2);
+          ctx.fillStyle = '#101828';
+          ctx.fill();
         } else {
-          ctx.fillStyle = '#EDF5FF';
+          const c = ledColour(st.lines.find((l) => vis.has(l)) ?? st.lines[0] ?? '');
+          ctx.fillStyle = '#fff';
+          ctx.strokeStyle = c.colour;
+          ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.arc(x, y, 2.3 * k, 0, Math.PI * 2);
+          ctx.arc(x, y, 3.4 * k, 0, Math.PI * 2);
           ctx.fill();
+          ctx.stroke();
         }
         const highlighted = st.id === sel || st.id === hov;
         if (highlighted) {
           ctx.globalAlpha = 1;
-          ctx.strokeStyle = '#EDF5FF';
+          ctx.strokeStyle = '#101828';
           ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.arc(x, y, 9 * k, 0, Math.PI * 2);
+          ctx.arc(x, y, 10 * k, 0, Math.PI * 2);
           ctx.stroke();
           if (st.id === sel && !rm) {
             const phase = (time % 1600) / 1600;
             ctx.globalAlpha = 1 - phase;
             ctx.beginPath();
-            ctx.arc(x, y, 9 * k + phase * 16, 0, Math.PI * 2);
+            ctx.arc(x, y, 10 * k + phase * 14, 0, Math.PI * 2);
             ctx.stroke();
           }
         }
-        if (!dim && (highlighted || showAll || (showMajor && st.interchange))) {
-          const text = st.name.toUpperCase();
+        const named = highlighted || st.interchange || showAll || showMany;
+        if (!dim && named) {
+          const text = st.name;
           const tw = ctx.measureText(text).width;
-          const lx = x + 8 * k;
-          const ly = y - 5 * k;
-          const box: [number, number, number, number] = [lx - 2, ly - 10, lx + tw + 2, ly + 3];
+          const right = lp[0] >= 0;
+          const lx = right ? x + 9 * k : x - 9 * k;
+          const ly = y - (st.interchange ? 0.5 : 0) * k;
+          const pad = 3;
+          const box: [number, number, number, number] = right
+            ? [lx - pad, ly - fs * 0.55, lx + tw + pad, ly + fs * 0.55]
+            : [lx - tw - pad, ly - fs * 0.55, lx + pad, ly + fs * 0.55];
           if (highlighted || !labels.some((b) => b[0] < box[2] && b[2] > box[0] && b[1] < box[3] && b[3] > box[1])) {
             labels.push(box);
-            ctx.globalAlpha = highlighted ? 1 : 0.72;
-            ctx.fillStyle = '#EDF5FF';
+            ctx.textAlign = right ? 'left' : 'right';
+            ctx.globalAlpha = highlighted ? 1 : 0.96;
+            ctx.lineJoin = 'round';
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = '#fbfcfe';
+            ctx.strokeText(text, lx, ly);
+            ctx.fillStyle = '#101828';
             ctx.fillText(text, lx, ly);
           }
         }
       }
-
-      const out: typeof framePositions.current = [];
-      const trains = animator.frame((t) => vis.has(t.lineId));
-      for (const t of trains) {
-        const [x, y] = toScreen(t.pos);
-        if (x < -20 || y < -20 || x > w + 20 || y > h + 20) continue;
-        const dim = focus && t.sighting.lineId !== focus;
-        const c = ledColour(t.sighting.lineId);
-        const angle = Math.atan2(t.heading[1], t.heading[0]);
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(angle);
-        ctx.globalAlpha = dim ? 0.08 : 0.22;
-        ctx.fillStyle = c.glow;
-        ctx.beginPath();
-        ctx.roundRect(-8 * k, -4.5 * k, 16 * k, 9 * k, 4.5 * k);
-        ctx.fill();
-        ctx.globalAlpha = dim ? 0.18 : 1;
-        ctx.beginPath();
-        ctx.roundRect(-5.5 * k, -2.2 * k, 11 * k, 4.4 * k, 2.2 * k);
-        ctx.fill();
-        ctx.fillStyle = '#FFFFFF';
-        ctx.globalAlpha = dim ? 0.15 : 0.85;
-        ctx.fillRect(1.5 * k, -0.9 * k, 3 * k, 1.8 * k);
-        ctx.restore();
-        if (!dim) out.push({ t, x, y });
-      }
-      framePositions.current = out;
+      ctx.textAlign = 'left';
       ctx.globalAlpha = 1;
     };
     raf = requestAnimationFrame(draw);
@@ -304,18 +318,8 @@ export default function LedTubeMap(props: TubeMapProps) {
       view.current = { s, tx: x - (x - v.tx) * f, ty: y - (y - v.ty) * f };
     };
     const hit = (x: number, y: number) => {
-      let train: (typeof framePositions.current)[number] | null = null;
-      let td = 12;
-      for (const p of framePositions.current) {
-        const d = Math.hypot(p.x - x, p.y - y);
-        if (d < td) {
-          train = p;
-          td = d;
-        }
-      }
-      if (train) return { train, station: null };
       let station: string | null = null;
-      let sd = 14;
+      let sd = 12;
       const { visibleLines: vis } = propsRef.current;
       for (const st of Object.values(network.stations)) {
         if (!st.lines.some((l) => vis.has(l))) continue;
@@ -328,7 +332,21 @@ export default function LedTubeMap(props: TubeMapProps) {
           sd = d;
         }
       }
-      return { train: null, station };
+      if (station) return { station, line: null };
+      const lx = (x - view.current.tx) / view.current.s;
+      const ly = (y - view.current.ty) / view.current.s;
+      const max = 10 / view.current.s;
+      let line: string | null = null;
+      let ld = max;
+      for (const run of paths.runs) {
+        if (!vis.has(run.id)) continue;
+        const d = distToRun(lx, ly, run.pts);
+        if (d < ld) {
+          line = run.id;
+          ld = d;
+        }
+      }
+      return { station: null, line };
     };
 
     let lastHover: string | null = null;
@@ -364,9 +382,9 @@ export default function LedTubeMap(props: TubeMapProps) {
       }
       if (e.pointerType !== 'mouse') return;
       const h = hit(p.x, p.y);
-      setHover(h.train ? { sighting: h.train.t.sighting, secondsToNext: h.train.t.secondsToNext, x: p.x, y: p.y } : null);
       if (h.station !== lastHover) propsRef.current.onHoverStation((lastHover = h.station));
-      canvas.style.cursor = h.train || h.station ? 'pointer' : 'grab';
+      hoverLine.current = h.line;
+      canvas.style.cursor = h.station || h.line ? 'pointer' : 'grab';
     };
     const onUp = (e: PointerEvent) => {
       const p = local(e);
@@ -374,18 +392,17 @@ export default function LedTubeMap(props: TubeMapProps) {
       if (pointers.size < 2) pinch = null;
       if (moved < 6 && pointers.size === 0) {
         const h = hit(p.x, p.y);
-        if (h.train) {
-          setHover({ sighting: h.train.t.sighting, secondsToNext: h.train.t.secondsToNext, x: p.x, y: p.y });
-          propsRef.current.onSelectStation(h.train.t.sighting.toStationId);
-        } else {
-          setHover(null);
-          if (h.station) propsRef.current.onSelectStation(h.station);
+        if (h.station) {
+          propsRef.current.onSelectStation(h.station);
+        } else if (h.line) {
+          const current = propsRef.current.focusLineId;
+          propsRef.current.onFocusLine?.(current === h.line ? null : h.line);
         }
       }
     };
     const onLeave = () => {
       if (pointers.size) return;
-      setHover(null);
+      hoverLine.current = null;
       if (lastHover) propsRef.current.onHoverStation((lastHover = null));
     };
     const onWheel = (e: WheelEvent) => {
@@ -410,7 +427,7 @@ export default function LedTubeMap(props: TubeMapProps) {
       canvas.removeEventListener('wheel', onWheel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- loop reads live props via propsRef
-  }, [layout, paths, animator, network]);
+  }, [layout, paths, network]);
 
   const zoomBy = (f: number) => {
     const { w, h } = size.current;
@@ -434,14 +451,14 @@ export default function LedTubeMap(props: TubeMapProps) {
   };
 
   return (
-    <div ref={wrapRef} className="led-board">
+    <div ref={wrapRef} className="led-board led-board--schematic">
       <div className="led-board__backlight" aria-hidden="true" />
       <canvas
         ref={canvasRef}
         className="led-board__canvas"
         tabIndex={0}
         role="img"
-        aria-label="Schematyczna mapa LED metra. Strzałki przesuwają, + i − przybliżają, 0 pokazuje całość. Stacje wybierzesz też z wyszukiwarki i listy linii."
+        aria-label="Schemat metra jak w wagonie. Strzałki przesuwają, + i − przybliżają, 0 pokazuje całość. Stację wybierzesz kliknięciem."
         onKeyDown={onKeyDown}
       />
       <div className="led-board__glass" aria-hidden="true" />
@@ -456,7 +473,6 @@ export default function LedTubeMap(props: TubeMapProps) {
           <Maximize2 size={16} aria-hidden="true" />
         </button>
       </div>
-      {hover && <TrainTooltip hover={hover} network={network} />}
     </div>
   );
 }

@@ -59,7 +59,7 @@ export function TransportPage() {
   const shown = active === 'all' ? MODES : [active];
 
   return (
-    <div className="tdark tpage">
+    <div className="tpage tpage--portal">
       <TransportHeader
         crumbs={[{ label: 'Transport' }]}
         kicker="Londyn na żywo"

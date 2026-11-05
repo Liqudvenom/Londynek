@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, Clock, MessageSquare } from 'lucide-react';
+import { Reactions } from '@/components/social/Reactions';
 import { Img } from '@/components/ui/Img';
 import type { Article } from '@/types';
 import './cards.css';
@@ -36,6 +37,7 @@ export function NewsLead({ article, priority = false }: { article: Article; prio
           </span>
           <Comments count={article.comments} />
         </div>
+        <Reactions id={article.id} />
       </div>
     </article>
   );
@@ -61,6 +63,7 @@ export function NewsCard({ article, variant = 'standard' }: { article: Article; 
           <span>{article.ago}</span>
           <Comments count={article.comments} />
         </div>
+        <Reactions id={article.id} />
       </div>
     </article>
   );
@@ -109,6 +112,7 @@ export function MagazineCard({ article, size = 'md' }: { article: Article; size?
           <span>{article.author}</span>
           <span>{article.readMin} min czytania</span>
         </div>
+        <Reactions id={article.id} />
       </div>
     </article>
   );

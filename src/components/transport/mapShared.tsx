@@ -1,7 +1,7 @@
 import { tubeLineColours, isTubeLineId } from '@/data/tube-colors';
 import { formatSeconds } from '@/lib/tfl/format';
 import type { NetworkIndex } from '@/lib/tfl/network';
-import type { TrainSighting, TubeNetwork } from '@/lib/tfl/types';
+import type { Journey, TrainSighting, TubeNetwork } from '@/lib/tfl/types';
 
 export interface FocusRequest {
   kind: 'line' | 'station' | 'all';
@@ -18,9 +18,12 @@ export interface TubeMapProps {
   hoveredStationId: string | null;
   onSelectStation: (id: string) => void;
   onHoverStation: (id: string | null) => void;
+  onFocusLine?: (id: string | null) => void;
   sightings: TrainSighting[] | null;
   reducedMotion: boolean;
   focusRequest: FocusRequest | null;
+  /** Selected TfL journey – highlighted on the geographic map only. */
+  journey?: Journey | null;
 }
 
 /** Display colour of a line on dark backgrounds – Northern's black needs a light outline. */
@@ -70,6 +73,54 @@ export function TrainTooltip({ hover, network }: { hover: HoverTrain; network: T
       <p className="train-tip__note">Pozycja na mapie jest wizualnym oszacowaniem na podstawie danych TfL.</p>
     </div>
   );
+}
+
+export function pointAlong(pts: readonly [number, number][], t: number): [number, number] | null {
+  if (pts.length < 2) return pts[0] ?? null;
+  let total = 0;
+  for (let i = 1; i < pts.length; i++) total += Math.hypot(pts[i]![0] - pts[i - 1]![0], pts[i]![1] - pts[i - 1]![1]);
+  if (total <= 0) return pts[0]!;
+  let d = (((t % 1) + 1) % 1) * total;
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1]!;
+    const b = pts[i]!;
+    const seg = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (d <= seg || i === pts.length - 1) {
+      const k = seg ? Math.min(1, d / seg) : 0;
+      return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
+    }
+    d -= seg;
+  }
+  return pts[pts.length - 1]!;
+}
+
+export function pulsePhase(now: number, delay: number) {
+  return 0.5 + 0.5 * Math.sin((now + delay) / 320);
+}
+
+/** Soft circle that grows and fades – one per Tube line instead of a swarm of train capsules. */
+export function drawPulse(ctx: CanvasRenderingContext2D, x: number, y: number, colour: string, radius: number, phase: number, alpha: number) {
+  ctx.save();
+  ctx.globalAlpha = alpha * (1 - phase) * 0.42;
+  ctx.strokeStyle = colour;
+  ctx.lineWidth = Math.max(1.4, radius * 0.28);
+  ctx.beginPath();
+  ctx.arc(x, y, radius + phase * radius * 2.4, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = colour;
+  ctx.beginPath();
+  ctx.arc(x, y, radius * (0.82 + 0.18 * (1 - phase)), 0, Math.PI * 2);
+  ctx.fill();
+  ctx.lineWidth = 1.6;
+  ctx.strokeStyle = '#ffffff';
+  ctx.stroke();
+  ctx.fillStyle = '#ffffff';
+  ctx.globalAlpha = alpha * 0.92;
+  ctx.beginPath();
+  ctx.arc(x, y, radius * 0.34, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
 }
 
 /** Draws a capsule-shaped train marker centred at (x, y) along `angle` (radians). */

@@ -1,0 +1,89 @@
+/* ===== Static raster map ===== */
+.smap-static { position: absolute; inset: 0; overflow: hidden; background: #eef1f4; }
+.smap-static__tiles { position: absolute; width: 768px; height: 512px; transition: transform 250ms var(--ease-out); transform-origin: var(--ox, 50%) var(--oy, 50%); }
+.smap-static__tiles img { position: absolute; width: 256px; height: 256px; max-width: none; user-select: none; }
+.smap-static__pin {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  margin: -22px 0 0 -11px;
+  border-radius: 50% 50% 50% 0;
+  background: var(--pin);
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgb(16 24 40 / 0.3);
+  transform: rotate(-45deg);
+}
+.smap-static__pin::after { content: ''; position: absolute; inset: 5px; border-radius: 50%; background: #fff; }
+.smap-static__dot { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 1px 3px rgb(16 24 40 / 0.3); }
+.smap-static__area {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 76px;
+  height: 76px;
+  margin: -38px 0 0 -38px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--pin) 16%, transparent);
+  border: 2px solid color-mix(in srgb, var(--pin) 55%, transparent);
+}
+
+/* ===== Card mini map ===== */
+.minimap { position: relative; height: 112px; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--card-border); background: #eef1f4; }
+.minimap__link { position: absolute; inset: 0; display: block; view-transition-name: none; }
+.minimap__link:focus-visible { outline: 3px solid var(--blue); outline-offset: -3px; }
+.minimap__link:hover .smap-static__tiles { transform: scale(1.04); }
+.minimap__open {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: var(--radius-pill);
+  background: rgb(255 255 255 / 0.95);
+  box-shadow: var(--shadow-sm);
+  color: var(--ink);
+  font-size: var(--fs-tiny);
+  font-weight: 700;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity var(--dur-micro) var(--ease-out), transform var(--dur-micro) var(--ease-out);
+}
+.minimap__link:hover .minimap__open,
+.minimap__link:focus-visible .minimap__open { opacity: 1; transform: none; }
+@media (hover: none) { .minimap__open { opacity: 1; transform: none; } }
+.minimap__badge { position: absolute; left: 8px; top: 8px; padding: 2px 7px; border-radius: var(--radius-pill); background: rgb(255 255 255 / 0.92); font-size: 11px; font-weight: 700; color: var(--text-secondary); }
+.minimap__gmaps {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 7px;
+  border-radius: var(--radius-pill);
+  background: rgb(255 255 255 / 0.92);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.minimap__gmaps:hover { color: var(--blue); }
+.minimap__attr { position: absolute; right: 4px; bottom: 2px; font-size: 9px; color: rgb(16 24 40 / 0.55); pointer-events: none; }
+.minimap--tall { height: 160px; }
+.minimap--row { height: 100%; min-height: 120px; }
+::view-transition-old(londynek-map),
+::view-transition-new(londynek-map) { animation-duration: var(--dur-map); }
+@media (prefers-reduced-motion: reduce) {
+  .smap-static__tiles,
+  .minimap__open { transition: none; }
+  .minimap__link:hover .smap-static__tiles { transform: none; }
+}
+
+/* ===== Geo strip extras ===== */
+.geo-strip__walk { display: inline-flex; align-items: center; gap: 3px; color: var(--text-muted); }
+.geo-strip__muted { color: var(--text-muted); }
+.geo-strip--compact .geo-strip__facts { gap: 2px 10px; }

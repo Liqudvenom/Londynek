@@ -6,6 +6,6 @@ dist-server
 .env
 .env.*
 !.env.example
-data/
+/data/
 *.log
 coverage
